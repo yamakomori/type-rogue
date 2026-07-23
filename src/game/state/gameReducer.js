@@ -9,8 +9,8 @@ export function createGameState(save) {
   return { screen: "map", save, session: null, result: null, message: "" };
 }
 
-function startStage(state, stageId) {
-  if (!state.save.unlockedStageIds.includes(stageId)) return state;
+function startStage(state, stageId, allowLocked = false) {
+  if (!allowLocked && !state.save.unlockedStageIds.includes(stageId)) return state;
   const stage = getStage(stageId);
   const problems = chooseProblems({
     stageId,
@@ -105,6 +105,8 @@ export function gameReducer(state, action) {
   switch (action.type) {
     case "START_STAGE":
       return startStage(state, action.stageId);
+    case "DEV_START_STAGE":
+      return startStage(state, action.stageId, true);
     case "TYPE_KEY": {
       if (state.screen !== "typing" || !state.session || state.session.attempt.completed) return state;
       const { attempt, result } = submitKey(state.session.attempt, action.key, action.now);

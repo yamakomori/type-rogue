@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "npm run validate-content && astro build",
     "preview": "astro preview",
-    "test": "node --test",
+    "test": "npm run validate-content && node --test",
+    "validate-content": "node scripts/validate-content.js",
     "serve": "astro dev"
   },
   "dependencies": {
@@ -15,5 +16,6 @@
     "astro": "^7.1.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

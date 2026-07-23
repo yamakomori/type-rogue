@@ -44,7 +44,7 @@ export default function GameShell() {
   const content = state.screen === "typing" ? <TypingScreen state={state} dispatch={dispatch} />
     : state.screen === "wardrobe" ? <WardrobeScreen state={state} dispatch={dispatch} />
       : state.screen === "settings" ? <SettingsScreen state={state} dispatch={dispatch} />
-        : <MapScreen state={state} dispatch={dispatch} />;
+        : <MapScreen state={state} dispatch={dispatch} isDev={import.meta.env.DEV} />;
 
   return <>
     <Header save={state.save} onMap={() => navigation("SHOW_MAP")} onWardrobe={() => navigation("SHOW_WARDROBE")} onSettings={() => navigation("SHOW_SETTINGS")} />
@@ -65,13 +65,13 @@ function Avatar({ save }) {
   return <div className="avatar" aria-label="あなたの相棒"><div className="avatar-headmark">{headMark}</div><div className="avatar-head" style={{ background: body?.color ?? "#88a97a" }} /><div className="avatar-body" style={{ background: outfit?.color ?? "#ece3cc" }} /><span className="avatar-eye left" /><span className="avatar-eye right" /></div>;
 }
 
-function MapScreen({ state, dispatch }) {
+function MapScreen({ state, dispatch, isDev }) {
   return <section className="map-screen"><div className="map-hero"><div><p className="eyebrow">はじまりの庭</p><h1>今日は、どの灯りへ行く？</h1><p>1回は、3つの小さな問題だけ。</p></div><Avatar save={state.save} /></div><div className="path-line" aria-hidden="true" /><div className="stage-list">{STAGES.map((stage, index) => {
     const unlocked = state.save.unlockedStageIds.includes(stage.id);
     const current = state.save.currentStageId === stage.id;
     const plays = state.save.stagePlayCounts[stage.id] ?? 0;
     return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}><span className="stage-number">{String(index + 1).padStart(2, "0")}</span><div><h2>{unlocked ? stage.name : "まだ とおれない みち"}</h2><p>{unlocked ? stage.description : "ひとつ前の道を あるくと、ひらくよ。"}</p>{unlocked && <small>{plays} 回あるいた</small>}</div><button className="secondary-button" disabled={!unlocked} onClick={() => dispatch({ type: "START_STAGE", stageId: stage.id })}>{current ? "つづきへ" : "あるく"}</button></article>;
-  })}</div></section>;
+  })}</div>{isDev && <details className="dev-stage-selector"><summary>開発用: 試すステージを選ぶ</summary><div>{STAGES.map((stage) => <button key={stage.id} className="secondary-button" onClick={() => dispatch({ type: "DEV_START_STAGE", stageId: stage.id })}>{stage.id}</button>)}</div></details>}</section>;
 }
 
 function TypingScreen({ state, dispatch }) {
