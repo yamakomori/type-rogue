@@ -2,6 +2,7 @@ import { useEffect, useReducer } from "react";
 import { STAGES, getStage } from "../../domain/curriculum.js";
 import { ITEMS, getItem } from "../../domain/economy.js";
 import { getFingerGuide } from "../../domain/fingers.js";
+import { fishCollectionStats, getFishSpecies } from "../../domain/fish.js";
 import { loadSave, persistSave } from "../../domain/save.js";
 import { createGameState, gameReducer } from "../../game/state/gameReducer.js";
 import "../../styles.css";
@@ -42,19 +43,20 @@ export default function GameShell() {
 
   const navigation = (type) => dispatch({ type });
   const content = state.screen === "typing" ? <TypingScreen state={state} dispatch={dispatch} />
-    : state.screen === "wardrobe" ? <WardrobeScreen state={state} dispatch={dispatch} />
+    : state.screen === "aquarium" ? <AquariumScreen state={state} dispatch={dispatch} />
+      : state.screen === "wardrobe" ? <WardrobeScreen state={state} dispatch={dispatch} />
       : state.screen === "settings" ? <SettingsScreen state={state} dispatch={dispatch} />
         : <MapScreen state={state} dispatch={dispatch} isDev={import.meta.env.DEV} />;
 
   return <>
-    <Header save={state.save} onMap={() => navigation("SHOW_MAP")} onWardrobe={() => navigation("SHOW_WARDROBE")} onSettings={() => navigation("SHOW_SETTINGS")} />
+    <Header save={state.save} onMap={() => navigation("SHOW_MAP")} onAquarium={() => navigation("SHOW_AQUARIUM")} onWardrobe={() => navigation("SHOW_WARDROBE")} onSettings={() => navigation("SHOW_SETTINGS")} />
     {content}
     {state.screen === "result" && <RewardOverlay state={state} dispatch={dispatch} />}
   </>;
 }
 
-function Header({ save, onMap, onWardrobe, onSettings }) {
-  return <header className="topbar"><button className="brand" onClick={onMap} aria-label="地図へ">ことばの小さな冒険</button><div className="topbar-actions"><span className="coin" aria-label={`コイン ${save.coins}`}>◌ {save.coins}</span><button className="icon-button" onClick={onWardrobe} aria-label="着せ替え">♧</button><button className="icon-button" onClick={onSettings} aria-label="設定">⚙</button></div></header>;
+function Header({ save, onMap, onAquarium, onWardrobe, onSettings }) {
+  return <header className="topbar"><button className="brand" onClick={onMap} aria-label="海図へ">ことばの小さな海</button><div className="topbar-actions"><span className="coin" aria-label={`コイン ${save.coins}`}>◌ {save.coins}</span><button className="icon-button" onClick={onAquarium} aria-label="水槽を見る">♒</button><button className="icon-button" onClick={onWardrobe} aria-label="着せ替え">♧</button><button className="icon-button" onClick={onSettings} aria-label="設定">⚙</button></div></header>;
 }
 
 function Avatar({ save }) {
@@ -66,12 +68,24 @@ function Avatar({ save }) {
 }
 
 function MapScreen({ state, dispatch, isDev }) {
-  return <section className="map-screen"><div className="map-hero"><div><p className="eyebrow">はじまりの庭</p><h1>今日は、どの灯りへ行く？</h1><p>1回は、3つの小さな問題だけ。</p></div><Avatar save={state.save} /></div><div className="path-line" aria-hidden="true" /><div className="stage-list">{STAGES.map((stage, index) => {
+  const collection = fishCollectionStats(state.save.caughtFish);
+  return <section className="map-screen"><div className="map-hero sea-hero"><div><p className="eyebrow">きょうの海</p><h1>今日は、どの海へ行く？</h1><p>3つのことばを打つと、魚が1匹つれるよ。</p><button className="primary-button hero-action" onClick={() => dispatch({ type: "SHOW_AQUARIUM" })}>水槽をみる <small>{collection.total} 匹</small></button></div><AquariumPreview fish={state.save.caughtFish} emptyMessage="海へ出ると、魚に出会えるよ。" /></div><p className="map-lead">ぼうけんする海をえらぼう</p><div className="stage-list">{STAGES.map((stage, index) => {
     const unlocked = state.save.unlockedStageIds.includes(stage.id);
     const current = state.save.currentStageId === stage.id;
     const plays = state.save.stagePlayCounts[stage.id] ?? 0;
-    return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}><span className="stage-number">{String(index + 1).padStart(2, "0")}</span><div><h2>{unlocked ? stage.name : "まだ とおれない みち"}</h2><p>{unlocked ? stage.description : "ひとつ前の道を あるくと、ひらくよ。"}</p>{unlocked && <div className="stage-progress"><small>{plays} 回あるいた</small><StageMedals medals={state.save.stageMedals[stage.id]} /></div>}</div><button className="secondary-button" disabled={!unlocked} onClick={() => dispatch({ type: "START_STAGE", stageId: stage.id })}>{current ? "つづきへ" : "あるく"}</button></article>;
+    return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}><span className="stage-number">{String(index + 1).padStart(2, "0")}</span><div><h2>{unlocked ? stage.name : "まだ いけない 海"}</h2><p>{unlocked ? stage.description : "ひとつ前の海で 魚をつると、ひらくよ。"}</p>{unlocked && <div className="stage-progress"><small>{plays} 回つりをした</small><StageMedals medals={state.save.stageMedals[stage.id]} /></div>}</div><button className="secondary-button" disabled={!unlocked} onClick={() => dispatch({ type: "START_STAGE", stageId: stage.id })}>{current ? "この海へ" : "この海へ"}</button></article>;
   })}</div>{isDev && <details className="dev-stage-selector"><summary>開発用: 試すステージを選ぶ</summary><div>{STAGES.map((stage) => <button key={stage.id} className="secondary-button" onClick={() => dispatch({ type: "DEV_START_STAGE", stageId: stage.id })}>{stage.id}</button>)}</div></details>}</section>;
+}
+
+function FishVisual({ caughtFish, className = "", index = 0, muted = false }) {
+  const species = getFishSpecies(caughtFish?.speciesId);
+  const position = { left: `${9 + ((index * 19) % 76)}%`, top: `${20 + ((index * 23) % 54)}%` };
+  return <span className={`fish-visual ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" />{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}</span>;
+}
+
+function AquariumPreview({ fish = [], emptyMessage }) {
+  const visibleFish = fish.slice(-8);
+  return <div className="aquarium-preview" aria-label={`水槽。つかまえた魚 ${fish.length} 匹`}><div className="water-shine" />{visibleFish.length > 0 ? visibleFish.map((caughtFish, index) => <FishVisual key={caughtFish.id} caughtFish={caughtFish} index={index} />) : <p>{emptyMessage}</p>}<span className="aquarium-sand" /></div>;
 }
 
 function StageMedals({ medals = {}, onlyEarned = false }) {
@@ -88,8 +102,14 @@ function TypingScreen({ state, dispatch }) {
   const { stage, index, problems, attempt, feedback } = state.session;
   const display = attempt.matcher.display();
   const finger = getFingerGuide(display.next);
-  const companionText = attempt.completed ? "みつけた！ 次の道へすすむよ。" : feedback || (finger.label ? `${finger.label}で ${display.next === " " ? "Space" : display.next.toUpperCase()} を おそう。` : "つぎのキーを、ゆっくりさがそう。");
-  return <section className={`typing-screen ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}><div className="typing-top"><button className="text-button" onClick={() => dispatch({ type: "SHOW_MAP" })}>← 地図へ</button><span>灯り {index + 1} / {problems.length}</span></div><div className="typing-stage"><p className="eyebrow">{stage.name}</p><p className="problem-title">{attempt.problem.title}</p><p className="problem-text" aria-label="入力する文字">{attempt.problem.text}</p><p className="input-guide" aria-label="ローマ字入力"><span className="typed">{display.typed || "\u00a0"}</span><span className="next">{display.next}</span><span className="rest">{display.rest}</span></p>{attempt.completed && <p className="clear-message">灯りが つぎの道を 照らしている…</p>}</div>{state.save.settings.keyboardGuide && <KeyboardGuide expected={display.next} finger={finger} save={state.save} companionText={companionText} />}</section>;
+  const companionText = attempt.completed ? "みつけた！ 魚影が近づいているよ。" : feedback || (finger.label ? `${finger.label}で ${display.next === " " ? "Space" : display.next.toUpperCase()} を おそう。` : "つぎのキーを、ゆっくりさがそう。");
+  const fishProgress = (index + (attempt.completed ? 1 : 0)) / problems.length;
+  return <section className={`typing-screen ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}><div className="typing-top"><button className="text-button" onClick={() => dispatch({ type: "SHOW_MAP" })}>← 海図へ</button><span>つり {index + 1} / {problems.length}</span></div><div className="typing-stage sea-typing-stage"><FishingProgress progress={fishProgress} /><p className="eyebrow">{stage.name}</p><p className="problem-title">{attempt.problem.title}</p><p className="problem-text" aria-label="入力する文字">{attempt.problem.text}</p><p className="input-guide" aria-label="ローマ字入力"><span className="typed">{display.typed || "\u00a0"}</span><span className="next">{display.next}</span><span className="rest">{display.rest}</span></p>{attempt.completed && <p className="clear-message">糸をたぐっている…</p>}</div>{state.save.settings.keyboardGuide && <KeyboardGuide expected={display.next} finger={finger} save={state.save} companionText={companionText} />}</section>;
+}
+
+function FishingProgress({ progress }) {
+  const positions = { "--progress": progress, "--line-height": `${48 + progress * 42}%`, "--fish-left": `${74 - progress * 42}%`, "--fish-top": `${56 - progress * 24}%`, "--fish-opacity": .25 + progress * .75 };
+  return <div className="fishing-progress" style={positions} aria-label={`魚が ${Math.round(progress * 100)} パーセント近づいています`}><span className="fishing-line" /><FishVisual caughtFish={{ speciesId: "tide-goby" }} muted={progress < 1} /></div>;
 }
 
 function KeyboardGuide({ expected, finger, save, companionText }) {
@@ -102,7 +122,12 @@ function Hand({ side, active }) {
 }
 
 function WardrobeScreen({ state, dispatch }) {
-  return <section className="wardrobe-screen"><div className="screen-heading"><div><p className="eyebrow">相棒のもちもの</p><h1>今日は、なにを身につける？</h1><p>{state.message || "問題を終えると、コインが見つかるよ。"}</p></div><Avatar save={state.save} /></div><div className="item-grid">{ITEMS.map((item) => { const owned = state.save.ownedItemIds.includes(item.id); const equipped = state.save.equipped[item.slot] === item.id; const visual = item.kind === "leaf" ? "◆" : item.kind === "star" ? "★" : "●"; return <article key={item.id} className={`item-card ${equipped ? "equipped" : ""}`}><div className="item-preview" style={item.color ? { "--item-color": item.color } : undefined}>{visual}</div><h2>{item.name}</h2><p>{item.slot === "bodyColor" ? "からだの色" : item.slot === "head" ? "あたま" : "ふく"}</p><button className="secondary-button" disabled={equipped} onClick={() => dispatch({ type: "PURCHASE_OR_EQUIP", itemId: item.id })}>{equipped ? "つけている" : owned ? "つける" : `${item.price} コインで みつける`}</button></article>; })}</div><button className="text-button back-button" onClick={() => dispatch({ type: "SHOW_MAP" })}>← 地図へもどる</button></section>;
+  return <section className="wardrobe-screen"><div className="screen-heading"><div><p className="eyebrow">相棒のもちもの</p><h1>今日は、なにを身につける？</h1><p>{state.message || "海で見つけたコインで、身じたくできるよ。"}</p></div><Avatar save={state.save} /></div><div className="item-grid">{ITEMS.map((item) => { const owned = state.save.ownedItemIds.includes(item.id); const equipped = state.save.equipped[item.slot] === item.id; const visual = item.kind === "leaf" ? "◆" : item.kind === "star" ? "★" : "●"; return <article key={item.id} className={`item-card ${equipped ? "equipped" : ""}`}><div className="item-preview" style={item.color ? { "--item-color": item.color } : undefined}>{visual}</div><h2>{item.name}</h2><p>{item.slot === "bodyColor" ? "からだの色" : item.slot === "head" ? "あたま" : "ふく"}</p><button className="secondary-button" disabled={equipped} onClick={() => dispatch({ type: "PURCHASE_OR_EQUIP", itemId: item.id })}>{equipped ? "つけている" : owned ? "つける" : `${item.price} コインで みつける`}</button></article>; })}</div><button className="text-button back-button" onClick={() => dispatch({ type: "SHOW_MAP" })}>← 海図へもどる</button></section>;
+}
+
+function AquariumScreen({ state, dispatch }) {
+  const collection = fishCollectionStats(state.save.caughtFish);
+  return <section className="aquarium-screen"><div className="screen-heading aquarium-heading"><div><p className="eyebrow">あなたの水槽</p><h1>ことばでつかまえた魚たち</h1><p>{collection.total === 0 ? "海へ出ると、最初の魚に出会えるよ。" : `${collection.species} しゅるい、${collection.total} 匹が泳いでいるよ。`}</p><button className="primary-button hero-action" onClick={() => dispatch({ type: "SHOW_MAP" })}>海へ出かける</button></div><Avatar save={state.save} /></div><AquariumPreview fish={state.save.caughtFish} emptyMessage="まだ魚はいないよ。最初の海へ出かけよう。" /><div className="collection-heading"><div><p className="eyebrow">つかまえた魚</p><h2>{collection.total} 匹のコレクション</h2></div><button className="secondary-button" onClick={() => dispatch({ type: "SHOW_MAP" })}>海図へ</button></div><div className="fish-collection">{state.save.caughtFish.length === 0 ? <p className="empty-collection">魚をつると、ここに並ぶよ。</p> : state.save.caughtFish.slice().reverse().map((caughtFish) => { const species = getFishSpecies(caughtFish.speciesId); return <article className="fish-card" key={caughtFish.id}><FishVisual caughtFish={caughtFish} /><div><h3>{species.name}</h3><p>{species.habitat}で出会った</p>{caughtFish.variant !== "common" && <small>{caughtFish.variant === "gold" ? "金色のきらめき" : caughtFish.variant === "swift" ? "すばやい泳ぎ" : "おだやかな泳ぎ"}</small>}</div></article>; })}</div></section>;
 }
 
 function SettingsScreen({ state, dispatch }) {
@@ -112,5 +137,6 @@ function SettingsScreen({ state, dispatch }) {
 function RewardOverlay({ state, dispatch }) {
   const nextName = state.result.unlockedStageId ? getStage(state.result.unlockedStageId).name : null;
   const earned = state.result.newlyEarnedMedals;
-  return <section className="reward-overlay" role="dialog" aria-modal="true" aria-label="見つけたもの"><div className="reward-card"><div className="result-glow">✦</div><Avatar save={state.save} /><p className="eyebrow">小さな発見</p><h1>コインを {state.result.earned.coins} こ<br />みつけた！</h1><div className="found-item"><span>◌</span><strong>ひかりのコイン</strong><small>+{state.result.earned.coins}</small></div>{(earned.careful || earned.speed || earned.gold) && <div className="new-medals"><span>あたらしいメダル</span><StageMedals medals={earned} onlyEarned /></div>}<p>{state.result.accuracy >= 0.85 ? "ゆっくり、ていねいに歩けたね。" : "最後まで あるけたね。すてき！"}</p>{nextName && <div className="next-route-group"><div><span>あたらしい道が ひらいた！</span><strong>{nextName}</strong></div><button className="primary-button route-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.unlockedStageId })}>すすむ <kbd>N</kbd></button></div>}<div className="result-actions"><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><strong>地図へ</strong><small><kbd>M</kbd></small></button><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.stage.id })}><strong>もう1回</strong><small><kbd>R</kbd></small></button></div></div></section>;
+  const fish = getFishSpecies(state.result.caughtFish.speciesId);
+  return <section className="reward-overlay" role="dialog" aria-modal="true" aria-label="つれた魚"><div className="reward-card fish-reward"><div className="result-glow">✦</div><p className="eyebrow">つれた魚</p><FishVisual caughtFish={state.result.caughtFish} className="reward-fish" /><h1>{fish.name}が<br />つれた！</h1><div className="found-item fish-found-item"><FishVisual caughtFish={state.result.caughtFish} /><strong>水槽につれてかえろう</strong><small>{fish.habitat}</small></div>{(earned.careful || earned.speed || earned.gold) && <div className="new-medals"><span>あたらしいメダル</span><StageMedals medals={earned} onlyEarned /></div>}<p>{state.result.accuracy >= 0.85 ? "ていねいに糸をたぐれたね。" : "最後までつれたね。すてき！"}</p>{nextName && <div className="next-route-group"><div><span>あたらしい海が ひらいた！</span><strong>{nextName}</strong></div><button className="primary-button route-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.unlockedStageId })}>すすむ <kbd>N</kbd></button></div>}<div className="result-actions"><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><strong>海図へ</strong><small><kbd>M</kbd></small></button><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.stage.id })}><strong>もう1回</strong><small><kbd>R</kbd></small></button></div></div></section>;
 }

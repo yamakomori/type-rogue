@@ -13,6 +13,7 @@ export function createSave() {
     recentProblemIds: [],
     stagePlayCounts: {},
     stageMedals: {},
+    caughtFish: [],
     skills: {},
     coins: 0,
     xp: 0,

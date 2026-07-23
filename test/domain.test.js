@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, summarizePlay, updateSkills } from "../src/domain/learning.js";
 import { loadSave } from "../src/domain/save.js";
+import { fishCollectionStats, fishForCatch } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 
 test("mistakes raise only the relevant key review weight", () => {
@@ -103,4 +104,14 @@ test("old medal rules reset prototype medals once", () => {
     getItem: () => JSON.stringify({ schemaVersion: 1, medalRulesVersion: 3, stageMedals: { S00: { careful: true, speed: true, gold: true } } }),
   };
   assert.deepEqual(loadSave(storage).stageMedals, {});
+});
+
+test("every completed play produces one deterministic fish, with medals changing only its variant", () => {
+  const common = fishForCatch({ stageId: "S00", playCount: 1 });
+  const gold = fishForCatch({ stageId: "S00", playCount: 1, medals: { gold: true } });
+  assert.equal(common.speciesId, "tide-goby");
+  assert.equal(common.variant, "common");
+  assert.equal(gold.speciesId, "tide-goby");
+  assert.equal(gold.variant, "gold");
+  assert.deepEqual(fishCollectionStats([common, gold]), { total: 2, species: 1 });
 });

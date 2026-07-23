@@ -3,6 +3,7 @@ import { chooseProblems } from "../../domain/problems.js";
 import { equip, getItem, purchase, rewardForPlay, rewardForProblem } from "../../domain/economy.js";
 import { awardStageMedals, stageAccuracy, summarizePlay, updateSkills } from "../../domain/learning.js";
 import { createSave } from "../../domain/save.js";
+import { fishForCatch } from "../../domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../../domain/session.js";
 
 export function createGameState(save) {
@@ -79,6 +80,11 @@ function finishPlay(state) {
     state.session.stage.medalCriteria,
     playSummary,
   );
+  const caughtFish = fishForCatch({
+    stageId,
+    playCount,
+    medals: medalAward.medals,
+  });
   const save = {
     ...state.save,
     coins: state.save.coins + bonus.coins,
@@ -86,6 +92,7 @@ function finishPlay(state) {
     attempts,
     stagePlayCounts: { ...state.save.stagePlayCounts, [stageId]: playCount },
     stageMedals: { ...state.save.stageMedals, [stageId]: medalAward.medals },
+    caughtFish: [...state.save.caughtFish, caughtFish],
     unlockedStageIds: unlockedStageId
       ? [...state.save.unlockedStageIds, unlockedStageId]
       : state.save.unlockedStageIds,
@@ -106,6 +113,7 @@ function finishPlay(state) {
       accuracy: stageAccuracy(attempts, stageId),
       playSummary,
       newlyEarnedMedals: medalAward.newlyEarned,
+      caughtFish,
     },
   };
 }
@@ -147,6 +155,8 @@ export function gameReducer(state, action) {
       return { ...state, screen: "map", session: null, result: null, message: "" };
     case "SHOW_WARDROBE":
       return { ...state, screen: "wardrobe", session: null, message: "" };
+    case "SHOW_AQUARIUM":
+      return { ...state, screen: "aquarium", session: null, result: null, message: "" };
     case "SHOW_SETTINGS":
       return { ...state, screen: "settings", session: null, message: "" };
     case "TOGGLE_GUIDE":

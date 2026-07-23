@@ -8,13 +8,13 @@
 
 ```text
 UI
-  ├─ タイピング画面 / 地図 / 結果 / 装備
+  ├─ タイピング画面 / 海図 / 水槽 / 釣果 / 装備
   ↓ Action
 Application
   ├─ SessionService / ProgressService / RewardService
   ↓ Domain ports
 Domain
-  ├─ matcher / curriculum / generator / learning / economy / world
+  ├─ matcher / curriculum / generator / learning / economy / fish / world
   ↓ Repository
 Infrastructure
   ├─ localStorage or IndexedDB / content JSON / asset loader
@@ -31,8 +31,9 @@ src/
     curriculum/      # stage definitions, mastery rules
     generator/       # selector, validator, fallback problems
     learning/        # key skill aggregation
-    economy/         # rewards, catalog, ownership
-    world/           # regions, nodes, unlocks
+    economy/         # coins, avatar catalog, ownership
+    fish/            # species catalog, catch variants, collection statistics
+    world/           # seas, nodes, unlocks
   application/
     startSession.ts
     submitKey.ts
@@ -62,6 +63,7 @@ type SaveData = {
   skills: Record<string, KeySkill>;
   progress: { completedNodeIds: string[]; regionStates: Record<string, string> };
   economy: { coins: number; xp: number };
+  caughtFish: Array<{ id: string; speciesId: string; stageId: string; variant: string; size: string }>;
   inventory: AvatarState;
   settings: {
     keyboardLayout: "jis" | "us" | "unknown";
@@ -92,7 +94,7 @@ type SaveData = {
 ### 問題完了
 
 1. 試行結果を `LearningService` へ渡し、キー技能を更新する。
-2. `RewardService` が重複なしの報酬を確定する。
+2. `CatchService` が海域・プレイ回数・メダルから釣果を1匹確定する。
 3. `ProgressService` がノード・地域の状態を更新する。
 4. 一つのトランザクションとして保存し、結果画面に渡す。
 
@@ -117,7 +119,7 @@ type SaveData = {
 
 - S00〜S03、はじまりの庭、問題セット20〜30件。
 - ローマ字マッチャーの移植と、キー別の最小分析。
-- コイン、6〜12個の見た目アイテム、1体の相棒。
+- 水槽、海域ごとの魚、コイン、6〜12個の見た目アイテム、1体の相棒。
 - ローカルセーブ、音・動き・配列の基本設定。
 
 アカウント、同期、保護者ダッシュボード、自由入力保存、ガチャ、通知、ランキングは初期範囲から外す。
