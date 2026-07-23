@@ -7,7 +7,8 @@ import { fishForCatch } from "../../domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../../domain/session.js";
 
 export function createGameState(save) {
-  return { screen: "map", save, session: null, result: null, message: "" };
+  const isNewAdventure = save.completedProblemIds.length === 0 && save.caughtFish.length === 0;
+  return { screen: !save.hasSeenIntro && isNewAdventure ? "intro" : "map", save, session: null, result: null, message: "" };
 }
 
 function startStage(state, stageId, allowLocked = false) {
@@ -117,12 +118,17 @@ function finishPlay(state) {
       playSummary,
       newlyEarnedMedals: medalAward.newlyEarned,
       caughtFish,
+      firstCatch: state.save.caughtFish.length === 0,
     },
   };
 }
 
 export function gameReducer(state, action) {
   switch (action.type) {
+    case "BEGIN_INTRO":
+      return startStage({ ...state, save: { ...state.save, hasSeenIntro: true } }, "S00");
+    case "SKIP_INTRO":
+      return { ...state, screen: "map", save: { ...state.save, hasSeenIntro: true } };
     case "START_STAGE":
       return startStage(state, action.stageId);
     case "DEV_START_STAGE":

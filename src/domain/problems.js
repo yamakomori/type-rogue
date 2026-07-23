@@ -29,9 +29,10 @@ export function chooseProblems({ stageId, skills = {}, recentIds = [], count = 3
   });
   const targetCount = Math.min(count, weighted.length);
   const selected = [];
-  const focus = new Set(focusKeys);
-  const focused = weighted.filter((entry) => entry.problem.targetKeys.some((key) => focus.has(key)));
-  if (focused.length > 0) {
+  for (const focusKey of [...new Set(focusKeys)]) {
+    if (selected.length >= targetCount) break;
+    const focused = weighted.filter((entry) => entry.problem.targetKeys.includes(focusKey));
+    if (focused.length === 0) continue;
     const chosen = weightedPick(focused, random);
     selected.push(chosen.problem);
     weighted.splice(weighted.indexOf(chosen), 1);

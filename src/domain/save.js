@@ -14,6 +14,7 @@ export function createSave() {
     stagePlayCounts: {},
     stageMedals: {},
     caughtFish: [],
+    hasSeenIntro: false,
     skills: {},
     coins: 0,
     xp: 0,

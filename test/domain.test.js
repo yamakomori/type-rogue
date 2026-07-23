@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, reviewKeysForStage, summarizePlay, updateSkills } from "../src/domain/learning.js";
 import { chooseProblems } from "../src/domain/problems.js";
-import { loadSave } from "../src/domain/save.js";
+import { createSave, loadSave } from "../src/domain/save.js";
 import { fishCollectionStats, fishDiscovery, fishForCatch } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
+import { createGameState } from "../src/game/state/gameReducer.js";
 
 test("mistakes raise only the relevant key review weight", () => {
   const skills = updateSkills({}, {
@@ -107,6 +108,13 @@ test("old medal rules reset prototype medals once", () => {
   assert.deepEqual(loadSave(storage).stageMedals, {});
 });
 
+test("a new adventure begins with the optional first typing guide only once", () => {
+  const fresh = createSave();
+  assert.equal(createGameState(fresh).screen, "intro");
+  const existing = { ...fresh, hasSeenIntro: true };
+  assert.equal(createGameState(existing).screen, "map");
+});
+
 test("every completed play produces one deterministic fish, with medals changing only its variant", () => {
   const common = fishForCatch({ stageId: "S00", playCount: 1 });
   const gold = fishForCatch({ stageId: "S00", playCount: 1, medals: { gold: true } });
@@ -126,14 +134,14 @@ test("fish discovery counts only species found in the selected sea", () => {
   assert.equal(discovery.counts["tide-shrimp"], 0);
 });
 
-test("review keys stay within the stage and chooseProblems includes one of them", () => {
+test("every displayed review key is included in one of the selected problems", () => {
   const skills = {
     f: { reviewWeight: 1.5 },
-    j: { reviewWeight: 0.5 },
+    j: { reviewWeight: 1 },
     q: { reviewWeight: 3 },
   };
   const reviewKeys = reviewKeysForStage(skills, ["f", "j"]);
-  assert.deepEqual(reviewKeys, ["f"]);
+  assert.deepEqual(reviewKeys, ["f", "j"]);
   const selected = chooseProblems({
     stageId: "S00",
     count: 3,
@@ -141,5 +149,6 @@ test("review keys stay within the stage and chooseProblems includes one of them"
     random: () => 0,
   });
   assert.equal(selected.length, 3);
-  assert.equal(selected[0].targetKeys.includes("f"), true);
+  assert.equal(selected.some((problem) => problem.targetKeys.includes("f")), true);
+  assert.equal(selected.some((problem) => problem.targetKeys.includes("j")), true);
 });
