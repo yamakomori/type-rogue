@@ -58,6 +58,13 @@ test("coral forest learning tags have child-friendly labels", () => {
   }
 });
 
+test("aquarium cleaning uses the correct suisou reading", () => {
+  const problem = getProblemsForStage("CO06").find((item) => item.title === "水槽を おそうじ");
+  assert.ok(problem);
+  assert.equal(problem.input, "すいそうをきれいにする");
+  assert.equal(problem.preferredInput, "suisouwokireinisuru");
+});
+
 test("a displayed review key overrides recent avoidance when only one problem covers it", () => {
   const stage = getStage("CO06");
   const problems = getProblemsForStage("CO06");
