@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { STAGES } from "../src/domain/curriculum.js";
 import { FISH_SPECIES } from "../src/domain/fish.js";
 import { PROBLEMS } from "../src/domain/problems.js";
@@ -77,6 +79,14 @@ for (const fish of FISH_SPECIES) {
   if (!regionById.has(fish.regionId)) errors.push(`魚の海域が不正: ${fish.id}`);
   for (const stageId of fish.stages) {
     if (stageById.get(stageId)?.regionId !== fish.regionId) errors.push(`魚とステージの海域が不一致: ${fish.id} → ${stageId}`);
+  }
+  if (fish.sprite) {
+    if (!fish.sprite.src?.startsWith("/sprites/") || !fish.sprite.src.endsWith(".png")) errors.push(`${fish.id}: スプライトパスが不正`);
+    if (fish.sprite.frames !== 4) errors.push(`${fish.id}: 現在の描画が対応しないコマ数 ${fish.sprite.frames}`);
+    if (!Number.isFinite(fish.sprite.frameMs) || fish.sprite.frameMs < 100) errors.push(`${fish.id}: スプライト速度が不正`);
+    if (fish.sprite.sourceFacing !== "right") errors.push(`${fish.id}: スプライトの向きが不正`);
+    const spritePath = join(process.cwd(), "public", fish.sprite.src.replace(/^\//, ""));
+    if (!existsSync(spritePath)) errors.push(`${fish.id}: スプライトファイルが見つからない ${fish.sprite.src}`);
   }
 }
 

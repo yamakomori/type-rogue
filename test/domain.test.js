@@ -4,7 +4,7 @@ import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, summarizePlay, updateConceptSkills, updateSkills } from "../src/domain/learning.js";
 import { chooseProblems, getProblemsForStage } from "../src/domain/problems.js";
 import { createSave, loadSave } from "../src/domain/save.js";
-import { fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, releaseFish } from "../src/domain/fish.js";
+import { fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, releaseFish } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 import { createGameState, gameReducer } from "../src/game/state/gameReducer.js";
 
@@ -159,6 +159,18 @@ test("every completed play produces one deterministic fish, with medals changing
   assert.equal(gold.speciesId, "tide-goby");
   assert.equal(gold.variant, "gold");
   assert.deepEqual(fishCollectionStats([common, gold]), { total: 2, species: 1 });
+});
+
+test("sprite metadata belongs to the species and is not copied into saved catches", () => {
+  const species = getFishSpecies("shallow-puffer");
+  assert.deepEqual(species.sprite, {
+    src: "/sprites/minami-hakofugu-strip.png",
+    frames: 4,
+    frameMs: 250,
+    sourceFacing: "right",
+  });
+  const caught = fishForCatch({ stageId: "SH01", playCount: 1 });
+  assert.equal("sprite" in caught, false);
 });
 
 test("fish discovery counts only species found in the selected sea", () => {

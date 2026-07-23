@@ -8,9 +8,9 @@ export const FISH_SPECIES = [
   { id: "grass-seahorse", name: "うみくさタツノオトシゴ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#91ae70", accent: "#f3e6a1", shape: "tall" },
   { id: "moon-squid", name: "つきイカ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#b6a2ca", accent: "#e9e6f5", shape: "tall" },
   // 旧カリキュラムで捕まえた個体を図鑑と水槽に残すため、魚種IDは維持する。
-  { id: "deep-lantern", name: "あかりアンコウ", habitat: "潮だまり", regionId: "tidepool", stages: ["S08"], color: "#7187a9", accent: "#f5cb6d", shape: "round" },
+  { id: "deep-lantern", name: "あかりアンコウ", habitat: "潮だまり", regionId: "tidepool", stages: ["S08"], color: "#7187a9", accent: "#f5cb6d", shape: "round", rarity: "rare", sprite: { src: "/sprites/key-angler-strip.png", frames: 4, frameMs: 350, sourceFacing: "right" } },
   { id: "deep-jelly", name: "よるクラゲ", habitat: "潮だまり", regionId: "tidepool", stages: ["S08"], color: "#a98cc2", accent: "#d8f3f0", shape: "tall" },
-  { id: "shallow-puffer", name: "ぷくぷくフグ", habitat: "浅瀬", regionId: "shallows", stages: ["SH01", "SH02"], color: "#e7b955", accent: "#fff0ac", shape: "round" },
+  { id: "shallow-puffer", name: "ぷくぷくフグ", habitat: "浅瀬", regionId: "shallows", stages: ["SH01", "SH02"], color: "#e7b955", accent: "#fff0ac", shape: "round", rarity: "common", sprite: { src: "/sprites/minami-hakofugu-strip.png", frames: 4, frameMs: 250, sourceFacing: "right" } },
   { id: "sand-ray", name: "すなひかりエイ", habitat: "浅瀬", regionId: "shallows", stages: ["SH03", "SH04"], color: "#7db5a4", accent: "#d8f4df", shape: "long" },
   { id: "ribbon-eel", name: "ゆらりウツボ", habitat: "浅瀬", regionId: "shallows", stages: ["SH05", "SH06"], color: "#8f86ce", accent: "#e7defb", shape: "long" },
   { id: "bubble-jelly", name: "あわクラゲ", habitat: "浅瀬", regionId: "shallows", stages: ["SH07"], color: "#ef8fa5", accent: "#ffe4eb", shape: "tall" },

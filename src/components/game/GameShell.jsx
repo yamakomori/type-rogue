@@ -52,12 +52,12 @@ export default function GameShell() {
       : state.screen === "settings" ? <SettingsScreen state={state} dispatch={dispatch} />
         : <MapScreen state={state} dispatch={dispatch} isDev={import.meta.env.DEV} />;
 
-  return <>
+  return <div className={`app-shell ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}>
     {state.screen !== "intro" && <Header save={state.save} onMap={() => navigation("SHOW_MAP")} onAquarium={() => navigation("SHOW_AQUARIUM")} onWardrobe={() => navigation("SHOW_WARDROBE")} onSettings={() => navigation("SHOW_SETTINGS")} />}
     {content}
     {state.screen === "result" && <RewardOverlay state={state} dispatch={dispatch} />}
     {state.releaseCandidateId && <ReleaseConfirmDialog state={state} dispatch={dispatch} />}
-  </>;
+  </div>;
 }
 
 function Header({ save, onMap, onAquarium, onWardrobe, onSettings }) {
@@ -95,7 +95,11 @@ function MapScreen({ state, dispatch, isDev }) {
 function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNew = false }) {
   const species = getFishSpecies(caughtFish?.speciesId);
   const position = { left: `${9 + ((index * 19) % 76)}%`, top: `${20 + ((index * 23) % 54)}%` };
-  return <span className={`fish-visual ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" />{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
+  const spriteStyle = species.sprite ? {
+    "--sprite-image": `url("${species.sprite.src}")`,
+    "--sprite-duration": `${species.sprite.frames * species.sprite.frameMs}ms`,
+  } : {};
+  return <span className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}>{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
 }
 
 function AquariumPreview({ fish = [], emptyMessage }) {
