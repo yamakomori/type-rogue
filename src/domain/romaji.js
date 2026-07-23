@@ -47,6 +47,16 @@ function unitsAt(kana, pos) {
   return units;
 }
 
+export function validateKana(kana) {
+  let pos = 0;
+  while (pos < kana.length) {
+    const unit = unitsAt(kana, pos)[0];
+    if (!unit) return { valid: false, pos, char: kana[pos] };
+    pos += unit.kanaLen;
+  }
+  return { valid: true };
+}
+
 export class RomajiMatcher {
   load(kana) {
     this.kana = kana;

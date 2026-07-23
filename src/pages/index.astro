@@ -1,3 +1,7 @@
+---
+import GameShell from "../components/game/GameShell.jsx";
+---
+
 <!doctype html>
 <html lang="ja">
   <head>
@@ -5,10 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f6f3ec" />
     <title>ことばの小さな冒険</title>
-    <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
-    <main id="app" aria-live="polite"></main>
-    <script type="module" src="./src/main.js"></script>
+    <GameShell client:only="react" />
   </body>
 </html>

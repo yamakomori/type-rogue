@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DirectMatcher, RomajiMatcher } from "../src/domain/romaji.js";
+import { DirectMatcher, RomajiMatcher, validateKana } from "../src/domain/romaji.js";
+import { getProblemsForStage } from "../src/domain/problems.js";
 
 function type(matcher, input) {
   return [...input].map((char) => matcher.handleChar(char));
@@ -52,4 +53,10 @@ test("romaji matcher handles contextual n", () => {
   assert.equal(vowelMatcher.handleChar("a").accepted, false);
   assert.equal(vowelMatcher.handleChar("n").accepted, true);
   assert.equal(vowelMatcher.handleChar("a").completed, true);
+});
+
+test("S09 word data is valid kana for the matcher", () => {
+  const problems = getProblemsForStage("S09");
+  assert.ok(problems.length >= 8);
+  for (const problem of problems) assert.equal(validateKana(problem.input).valid, true, problem.id);
 });
