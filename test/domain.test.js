@@ -218,6 +218,22 @@ test("word-pattern mistakes are prioritized for a later play", () => {
   assert.equal(selected.some((problem) => problem.learningTags.includes("sokuon")), true);
 });
 
+test("a structured word stage advertises only one review key and schedules it", () => {
+  const save = {
+    ...createSave(),
+    hasSeenIntro: true,
+    currentStageId: "S11",
+    unlockedStageIds: ["S11"],
+    skills: {
+      b: { reviewWeight: 3 },
+      z: { reviewWeight: 2 },
+    },
+  };
+  const state = gameReducer(createGameState(save), { type: "START_STAGE", stageId: "S11" });
+  assert.deepEqual(state.session.reviewKeys, ["b"]);
+  assert.equal(state.session.problems.some((problem) => problem.targetKeys.includes("b")), true);
+});
+
 test("shallows lessons contain a structured three-part problem pool", () => {
   for (const stageId of ["S10", "S11"]) {
     const problems = getProblemsForStage(stageId);

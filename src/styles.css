@@ -52,6 +52,6 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 
 @media (max-width: 560px) {
   .keyboard-guide { padding-inline:7px; }
-  .key-row { gap:3px; }
-  .keycap { min-width:23px; padding-inline:2px; }
+  .key-row { gap:2px; }
+  .keycap { min-width:22px; padding-inline:2px; }
 }

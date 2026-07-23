@@ -63,7 +63,12 @@ export class RomajiMatcher {
     this.kana = kana;
     this.typed = "";
     this.done = kana.length === 0;
-    this.branches = this.done ? [] : [{ pos: 0, candidates: unitsAt(kana, 0).map((unit) => ({ ...unit, typed: 0 })) }];
+    this.branches = this.done ? [] : [{
+      pos: 0,
+      candidates: unitsAt(kana, 0)
+        .filter((unit) => this.preferredFrom(unit.kanaLen) !== null)
+        .map((unit) => ({ ...unit, typed: 0 })),
+    }];
   }
 
   handleChar(char) {
@@ -85,7 +90,12 @@ export class RomajiMatcher {
         if (typed === candidate.spelling.length) {
           const nextPos = branch.pos + candidate.kanaLen;
           if (nextPos >= this.kana.length) completed = true;
-          else add(nextPos, unitsAt(this.kana, nextPos).map((unit) => ({ ...unit, typed: 0 })));
+          else {
+            const nextCandidates = unitsAt(this.kana, nextPos)
+              .filter((unit) => this.preferredFrom(nextPos + unit.kanaLen) !== null)
+              .map((unit) => ({ ...unit, typed: 0 }));
+            if (nextCandidates.length > 0) add(nextPos, nextCandidates);
+          }
         } else unfinished.push({ ...candidate, typed });
       }
       if (unfinished.length) add(branch.pos, unfinished);
@@ -103,22 +113,25 @@ export class RomajiMatcher {
 
   display() {
     if (this.done) return { typed: this.typed, next: "", rest: "" };
-    const remaining = this.branches.flatMap((branch) => branch.candidates.map((candidate) => (
-      candidate.spelling.slice(candidate.typed) + this.greedyFrom(branch.pos + candidate.kanaLen)
-    ))).sort((a, b) => a.length - b.length)[0] ?? "";
+    const remaining = this.branches.flatMap((branch) => branch.candidates.flatMap((candidate) => {
+      const suffix = this.preferredFrom(branch.pos + candidate.kanaLen);
+      return suffix === null ? [] : [candidate.spelling.slice(candidate.typed) + suffix];
+    }))[0] ?? "";
     return { typed: this.typed, next: remaining[0] ?? "", rest: remaining.slice(1) };
   }
 
-  greedyFrom(pos) {
-    let result = "";
-    let cursor = pos;
-    while (cursor < this.kana.length) {
-      const unit = unitsAt(this.kana, cursor)[0];
-      if (!unit) break;
-      result += unit.spelling;
-      cursor += unit.kanaLen;
+  preferredFrom(pos, memo = new Map()) {
+    if (pos >= this.kana.length) return "";
+    if (memo.has(pos)) return memo.get(pos);
+    memo.set(pos, null);
+    for (const unit of unitsAt(this.kana, pos)) {
+      const suffix = this.preferredFrom(pos + unit.kanaLen, memo);
+      if (suffix === null) continue;
+      const preferred = unit.spelling + suffix;
+      memo.set(pos, preferred);
+      return preferred;
     }
-    return result;
+    return null;
   }
 }
 

@@ -16,7 +16,11 @@ export function createGameState(save) {
 function startStage(state, stageId, allowLocked = false) {
   if (!allowLocked && !state.save.unlockedStageIds.includes(stageId)) return state;
   const stage = getStage(stageId);
-  const reviewKeys = reviewKeysForStage(state.save.skills, getPracticeKeysForStage(stageId));
+  const reviewKeys = reviewKeysForStage(
+    state.save.skills,
+    getPracticeKeysForStage(stageId),
+    stage.focusTags?.length ? 1 : 2,
+  );
   const reviewConcepts = reviewConceptsForStage(state.save.conceptSkills, stage.focusTags);
   const problems = chooseProblems({
     stageId,
