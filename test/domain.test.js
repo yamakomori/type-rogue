@@ -209,12 +209,14 @@ test("word-pattern mistakes are prioritized for a later play", () => {
   assert.deepEqual(reviewConceptsForStage(conceptSkills, ["hatsuon", "sokuon", "choon"]), ["sokuon"]);
 
   const selected = chooseProblems({
-    stageId: "S10",
+    stageId: "SH08",
     conceptSkills,
     focusTags: ["sokuon"],
+    count: 6,
+    lessonPlan: ["intro", "intro", "practice", "practice", "mixed", "treasure"],
     random: () => 0,
   });
-  assert.deepEqual(selected.map((problem) => problem.lessonRole), ["intro", "practice", "treasure"]);
+  assert.deepEqual(selected.map((problem) => problem.lessonRole), ["intro", "intro", "practice", "practice", "mixed", "treasure"]);
   assert.equal(selected.some((problem) => problem.learningTags.includes("sokuon")), true);
 });
 
@@ -222,49 +224,53 @@ test("a structured word stage advertises only one review key and schedules it", 
   const save = {
     ...createSave(),
     hasSeenIntro: true,
-    currentStageId: "S11",
-    unlockedStageIds: ["S11"],
+    currentStageId: "SH11",
+    unlockedStageIds: ["SH11"],
     skills: {
       b: { reviewWeight: 3 },
       z: { reviewWeight: 2 },
     },
   };
-  const state = gameReducer(createGameState(save), { type: "START_STAGE", stageId: "S11" });
+  const state = gameReducer(createGameState(save), { type: "START_STAGE", stageId: "SH11" });
   assert.deepEqual(state.session.reviewKeys, ["b"]);
   assert.equal(state.session.problems.some((problem) => problem.targetKeys.includes("b")), true);
 });
 
-test("shallows lessons contain a structured three-part problem pool", () => {
-  for (const stageId of ["S10", "S11"]) {
+test("shallows lessons contain the specified six-part problem pools", () => {
+  const expectedCounts = [18, 20, 24, 24, 24, 30, 24, 24, 24, 30, 30];
+  for (const [index, expectedCount] of expectedCounts.entries()) {
+    const stageId = `SH${String(index + 1).padStart(2, "0")}`;
     const problems = getProblemsForStage(stageId);
-    assert.equal(problems.length, 24);
-    assert.deepEqual(new Set(problems.map((problem) => problem.lessonRole)), new Set(["intro", "practice", "treasure"]));
+    assert.equal(problems.length, expectedCount, stageId);
+    assert.deepEqual(new Set(problems.map((problem) => problem.lessonRole)), new Set(["intro", "practice", "mixed", "treasure"]));
   }
 });
 
-test("the shallows has its own fish for both stages", () => {
-  for (const stageId of ["S10", "S11"]) {
+test("the shallows has its own fish for every stage", () => {
+  for (let index = 1; index <= 11; index += 1) {
+    const stageId = `SH${String(index).padStart(2, "0")}`;
     const fish = fishForCatch({ stageId, playCount: 1 });
     assert.equal(fish.regionId, "shallows");
     assert.equal(fish.stageId, stageId);
   }
 });
 
-test("finishing S09 unlocks the shallows and S10 can produce a shallows fish", () => {
+test("finishing S08 unlocks a six-problem shallows lesson and catches a shallows fish", () => {
   const beforeUnlock = {
     ...createSave(),
     hasSeenIntro: true,
-    currentStageId: "S09",
-    unlockedStageIds: ["S09"],
-    stagePlayCounts: { S09: 2 },
+    currentStageId: "S08",
+    unlockedStageIds: ["S08"],
+    stagePlayCounts: { S08: 1 },
   };
-  let state = gameReducer(createGameState(beforeUnlock), { type: "START_STAGE", stageId: "S09" });
+  let state = gameReducer(createGameState(beforeUnlock), { type: "START_STAGE", stageId: "S08" });
   state = completeTypingPlay(state);
   assert.equal(state.screen, "result");
-  assert.equal(state.result.unlockedStageId, "S10");
-  assert.equal(state.save.currentStageId, "S10");
+  assert.equal(state.result.unlockedStageId, "SH01");
+  assert.equal(state.save.currentStageId, "SH01");
 
-  state = gameReducer(state, { type: "START_STAGE", stageId: "S10" });
+  state = gameReducer(state, { type: "START_STAGE", stageId: "SH01" });
+  assert.equal(state.session.problems.length, 6);
   state = completeTypingPlay(state);
   assert.equal(state.result.caughtFish.regionId, "shallows");
   assert.ok(Object.values(state.save.conceptSkills).some((skill) => skill.exposures > 0));

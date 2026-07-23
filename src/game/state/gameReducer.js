@@ -27,7 +27,8 @@ function startStage(state, stageId, allowLocked = false) {
     skills: state.save.skills,
     conceptSkills: state.save.conceptSkills,
     recentIds: state.save.recentProblemIds,
-    count: 3,
+    count: stage.problemCount ?? 3,
+    lessonPlan: stage.lessonPlan,
     focusKeys: reviewKeys,
     focusTags: reviewConcepts,
   });

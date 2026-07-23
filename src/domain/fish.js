@@ -7,12 +7,17 @@ export const FISH_SPECIES = [
   { id: "sea-glassfish", name: "あおひかり", habitat: "潮だまり", regionId: "tidepool", stages: ["S04", "S05", "S06"], color: "#729bc9", accent: "#d8f0ed", shape: "long" },
   { id: "grass-seahorse", name: "うみくさタツノオトシゴ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#91ae70", accent: "#f3e6a1", shape: "tall" },
   { id: "moon-squid", name: "つきイカ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#b6a2ca", accent: "#e9e6f5", shape: "tall" },
-  { id: "deep-lantern", name: "あかりアンコウ", habitat: "潮だまり", regionId: "tidepool", stages: ["S09"], color: "#7187a9", accent: "#f5cb6d", shape: "round" },
-  { id: "deep-jelly", name: "よるクラゲ", habitat: "潮だまり", regionId: "tidepool", stages: ["S09"], color: "#a98cc2", accent: "#d8f3f0", shape: "tall" },
-  { id: "shallow-puffer", name: "ぷくぷくフグ", habitat: "浅瀬", regionId: "shallows", stages: ["S10"], color: "#e7b955", accent: "#fff0ac", shape: "round" },
-  { id: "sand-ray", name: "すなひかりエイ", habitat: "浅瀬", regionId: "shallows", stages: ["S10"], color: "#7db5a4", accent: "#d8f4df", shape: "long" },
-  { id: "ribbon-eel", name: "ゆらりウツボ", habitat: "浅瀬", regionId: "shallows", stages: ["S11"], color: "#8f86ce", accent: "#e7defb", shape: "long" },
-  { id: "bubble-jelly", name: "あわクラゲ", habitat: "浅瀬", regionId: "shallows", stages: ["S11"], color: "#ef8fa5", accent: "#ffe4eb", shape: "tall" },
+  // 旧カリキュラムで捕まえた個体を図鑑と水槽に残すため、魚種IDは維持する。
+  { id: "deep-lantern", name: "あかりアンコウ", habitat: "潮だまり", regionId: "tidepool", stages: ["S08"], color: "#7187a9", accent: "#f5cb6d", shape: "round" },
+  { id: "deep-jelly", name: "よるクラゲ", habitat: "潮だまり", regionId: "tidepool", stages: ["S08"], color: "#a98cc2", accent: "#d8f3f0", shape: "tall" },
+  { id: "shallow-puffer", name: "ぷくぷくフグ", habitat: "浅瀬", regionId: "shallows", stages: ["SH01", "SH02"], color: "#e7b955", accent: "#fff0ac", shape: "round" },
+  { id: "sand-ray", name: "すなひかりエイ", habitat: "浅瀬", regionId: "shallows", stages: ["SH03", "SH04"], color: "#7db5a4", accent: "#d8f4df", shape: "long" },
+  { id: "ribbon-eel", name: "ゆらりウツボ", habitat: "浅瀬", regionId: "shallows", stages: ["SH05", "SH06"], color: "#8f86ce", accent: "#e7defb", shape: "long" },
+  { id: "bubble-jelly", name: "あわクラゲ", habitat: "浅瀬", regionId: "shallows", stages: ["SH07"], color: "#ef8fa5", accent: "#ffe4eb", shape: "tall" },
+  { id: "shell-octopus", name: "かくれだこ", habitat: "浅瀬", regionId: "shallows", stages: ["SH08", "SH09"], color: "#d67b68", accent: "#ffe0c7", shape: "round" },
+  { id: "sun-threadfish", name: "ひだまりイトヒキ", habitat: "浅瀬", regionId: "shallows", stages: ["SH10", "SH11"], color: "#edca5f", accent: "#fff6b8", shape: "long" },
+  { id: "coral-butterfly", name: "さんごチョウチョウウオ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO01"], color: "#f19a5b", accent: "#fff0b8", shape: "round" },
+  { id: "coral-cardinal", name: "こもれびテンジクダイ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO01"], color: "#e86f75", accent: "#ffe5cb", shape: "long" },
 ];
 
 export function getFishSpecies(speciesId) {

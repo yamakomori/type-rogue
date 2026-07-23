@@ -19,11 +19,26 @@ function weightedPick(weighted, random) {
   }) ?? weighted[weighted.length - 1];
 }
 
-export function chooseProblems({ stageId, skills = {}, conceptSkills = {}, recentIds = [], count = 3, focusKeys = [], focusTags = [], random = Math.random }) {
-  const candidates = getProblemsForStage(stageId).filter(
+export function chooseProblems({ stageId, skills = {}, conceptSkills = {}, recentIds = [], count = 3, lessonPlan, focusKeys = [], focusTags = [], random = Math.random }) {
+  const allProblems = getProblemsForStage(stageId);
+  const candidates = allProblems.filter(
     (problem) => !recentIds.includes(problem.id),
   );
-  const pool = candidates.length >= count ? candidates : getProblemsForStage(stageId);
+  const legacyPlan = ["intro", "practice", "treasure"];
+  const requestedPlan = lessonPlan?.slice(0, count);
+  const plan = requestedPlan?.length
+    ? requestedPlan
+    : legacyPlan.every((role) => allProblems.some((problem) => problem.lessonRole === role))
+      ? legacyPlan.slice(0, count)
+      : [];
+  const requiredByRole = plan.reduce((counts, role) => ({
+    ...counts,
+    [role]: (counts[role] ?? 0) + 1,
+  }), {});
+  const canFulfillPlan = (problems) => Object.entries(requiredByRole).every(
+    ([role, required]) => problems.filter((problem) => problem.lessonRole === role).length >= required,
+  );
+  const pool = candidates.length >= count && canFulfillPlan(candidates) ? candidates : allProblems;
   const weighted = pool.map((problem) => {
     const weakness = problem.targetKeys.reduce(
       (sum, key) => sum + (skills[key]?.reviewWeight ?? 0),
@@ -38,14 +53,13 @@ export function chooseProblems({ stageId, skills = {}, conceptSkills = {}, recen
   });
   const targetCount = Math.min(count, weighted.length);
   const selected = [];
-  const lessonRoles = ["intro", "practice", "treasure"];
-  const hasLessonStructure = lessonRoles.every((role) => weighted.some((entry) => entry.problem.lessonRole === role));
   const remainingFocusTags = new Set(focusTags);
   const remainingFocusKeys = new Set(focusKeys);
-  if (hasLessonStructure) {
-    for (const role of lessonRoles) {
+  if (plan.length > 0) {
+    for (const role of plan) {
       if (selected.length >= targetCount) break;
       const roleEntries = weighted.filter((entry) => entry.problem.lessonRole === role);
+      if (roleEntries.length === 0) continue;
       const coverage = (entry) => (
         entry.problem.targetKeys.filter((key) => remainingFocusKeys.has(key)).length
         + (entry.problem.learningTags ?? []).filter((tag) => remainingFocusTags.has(tag)).length
@@ -59,7 +73,7 @@ export function chooseProblems({ stageId, skills = {}, conceptSkills = {}, recen
       weighted.splice(weighted.indexOf(chosen), 1);
     }
   }
-  for (const focusKey of [...new Set(focusKeys)]) {
+  for (const focusKey of plan.length > 0 ? [] : [...new Set(focusKeys)]) {
     if (selected.length >= targetCount) break;
     if (selected.some((problem) => problem.targetKeys.includes(focusKey))) continue;
     const focused = weighted.filter((entry) => entry.problem.targetKeys.includes(focusKey));

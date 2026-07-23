@@ -1,6 +1,6 @@
 import { STAGE_CONTENT } from "../content/stages.js";
 
-export const STAGES = STAGE_CONTENT;
+export const STAGES = [...STAGE_CONTENT].sort((a, b) => a.order - b.order);
 
 export function getStage(stageId) {
   return STAGES.find((stage) => stage.id === stageId) ?? STAGES[0];

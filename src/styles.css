@@ -50,7 +50,18 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 .region-shallows .sea-typing-stage { border-color:#2b7479; background:radial-gradient(ellipse at 82% 16%, #42bdaf55, transparent 36%), #063348; }
 .region-shallows .fishing-progress .fishing-line { background:linear-gradient(#e4fff2, #e2c66f); }
 
+/* 第三海域「珊瑚の森」。暖色の珊瑚と木漏れ日のような光で浅瀬と区別する。 */
+.region-coral-forest .map-hero, .region-coral-forest .screen-heading { border-color:#9a5f68; background:linear-gradient(135deg, #5b3045, #17374a); }
+.region-coral-forest .aquarium-preview { border-color:#c77a72; background:linear-gradient(155deg, #9b4f5d 0%, #185a68 43%, #07364f 100%); box-shadow:inset 0 0 48px #32192c99, 0 12px 28px #01101e55; }
+.region-coral-forest .aquarium-preview::before { background:linear-gradient(110deg, transparent 17%, #fff1c84a 25%, transparent 34%), radial-gradient(ellipse at 50% 0%, #ffdca75c, transparent 60%); }
+.region-coral-forest .aquarium-sand { background:linear-gradient(0deg, #743f4d, #d27a6b99); }
+.region-coral-forest .sea-typing-stage { border-color:#a85f69; background:radial-gradient(ellipse at 82% 16%, #df8b7055, transparent 36%), #173348; }
+.region-coral-forest .fishing-progress .fishing-line { background:linear-gradient(#fff3d8, #ef9b78); }
+.region-coral-forest .stage-card.current { border-color:#df8d7b; box-shadow:0 5px 18px #ba5f6b35; }
+.region-coral-forest .stage-number { color:#f2a183; }
+
 @media (max-width: 560px) {
+  .input-guide { max-width:100%; font-size:clamp(1.05rem, 5.2vw, 1.4rem); letter-spacing:.04em; }
   .keyboard-guide { padding-inline:7px; }
   .key-row { gap:2px; }
   .keycap { min-width:22px; padding-inline:2px; }

@@ -9,17 +9,50 @@ const stageById = new Map(STAGES.map((stage) => [stage.id, stage]));
 const regionById = new Map(REGIONS.map((region) => [region.id, region]));
 const ids = new Set();
 const inputsByStage = new Map();
-const lessonRoles = new Set(["intro", "practice", "treasure"]);
+const lessonRoles = new Set(["intro", "practice", "mixed", "treasure"]);
 const learningTagPatterns = {
   hatsuon: /ん/,
   sokuon: /っ/,
   choon: /ー/,
   yoon: /[ゃゅょ]/,
+  "dakuon-yoon": /[ぎじぢびぴ][ゃゅょ]/,
+};
+const shallowProblemCounts = {
+  SH01: 18,
+  SH02: 20,
+  SH03: 24,
+  SH04: 24,
+  SH05: 24,
+  SH06: 30,
+  SH07: 24,
+  SH08: 24,
+  SH09: 24,
+  SH10: 30,
+  SH11: 30,
+};
+const shallowKanaByStage = {
+  SH01: "あいうえお",
+  SH02: "あいうえおかきくけこ",
+  SH03: "あいうえおかきくけこさしすせそたちつてと",
+  SH04: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめも",
+  SH05: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわを",
+  SH06: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ",
+  SH07: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽん",
+  SH08: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽんっ",
+  SH09: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽんっー",
+  SH10: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽんっーゃゅょ",
+  SH11: "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽんっーゃゅょ",
 };
 
 for (const stage of STAGES) {
   if (!stage.id || !stage.name || stage.availableKeys.length === 0) errors.push(`ステージ定義が不完全: ${stage.id}`);
   if (!stage.regionId || !regionById.has(stage.regionId)) errors.push(`ステージの海域が不正: ${stage.id}`);
+  if (!Number.isInteger(stage.order)) errors.push(`ステージ順が不正: ${stage.id}`);
+  if (!Number.isInteger(stage.problemCount) || stage.problemCount < 1) errors.push(`1回の問題数が不正: ${stage.id}`);
+  if (stage.lessonPlan) {
+    if (stage.lessonPlan.length !== stage.problemCount) errors.push(`${stage.id}: lessonPlanと問題数が不一致`);
+    if (!stage.lessonPlan.every((role) => lessonRoles.has(role))) errors.push(`${stage.id}: lessonPlanに未知の役割がある`);
+  }
   const criteria = stage.medalCriteria;
   if (!criteria || !(criteria.carefulMinAccuracy > 0 && criteria.carefulMinAccuracy <= 1) || !(criteria.speedMaxMsPerKey > 0)) {
     errors.push(`メダル基準が不正: ${stage.id}`);
@@ -80,25 +113,24 @@ for (const problem of PROBLEMS) {
   } else {
     errors.push(`${problem.id}: 未知のinputMode ${problem.inputMode}`);
   }
+  if (problem.stageId.startsWith("SH")) {
+    if (!problem.lessonRole) errors.push(`${problem.id}: lessonRoleが不足`);
+    if (!["pattern", "word"].includes(problem.exerciseKind)) errors.push(`${problem.id}: exerciseKindが不正`);
+    const allowedKana = new Set(shallowKanaByStage[problem.stageId] ?? "");
+    const unsupportedKana = [...problem.input].filter((char) => !allowedKana.has(char));
+    if (unsupportedKana.length) errors.push(`${problem.id}: ${problem.stageId}では未学習のかな ${[...new Set(unsupportedKana)].join(", ")}`);
+    if (problem.stageId === "SH10" && /[ぎじぢびぴ][ゃゅょ]/.test(problem.input)) {
+      errors.push(`${problem.id}: SH11で学ぶ濁音・半濁音の拗音がSH10に含まれている`);
+    }
+  }
   const stageInputs = inputsByStage.get(problem.stageId) ?? new Set();
   if (stageInputs.has(problem.input)) errors.push(`${problem.id}: 同ステージ内で入力が重複 (${problem.input})`);
   stageInputs.add(problem.input);
   inputsByStage.set(problem.stageId, stageInputs);
 }
 
-for (const problem of PROBLEMS.filter((item) => item.stageId === "S09")) {
-  if (/[んっーゃゅょ]/.test(problem.input)) errors.push(`${problem.id}: S10以降で学ぶ表記がS09に含まれている`);
-}
-
-for (const problem of PROBLEMS.filter((item) => item.stageId === "S10")) {
-  if (/[ゃゅょ]/.test(problem.input)) errors.push(`${problem.id}: S11で学ぶ拗音がS10に含まれている`);
-  for (const [tag, pattern] of Object.entries(learningTagPatterns)) {
-    if (tag !== "yoon" && pattern.test(problem.input) && !problem.learningTags?.includes(tag)) errors.push(`${problem.id}: 入力に対応する学習タグ ${tag} がない`);
-  }
-}
-
 const progressiveInputs = new Map();
-for (const problem of PROBLEMS.filter((item) => ["S09", "S10", "S11"].includes(item.stageId))) {
+for (const problem of PROBLEMS.filter((item) => item.stageId.startsWith("SH"))) {
   const previousId = progressiveInputs.get(problem.input);
   if (previousId) errors.push(`${problem.id}: 段階学習内で入力が重複 (${previousId} / ${problem.input})`);
   progressiveInputs.set(problem.input, problem.id);
@@ -108,9 +140,17 @@ for (const stage of STAGES) {
   const stageProblems = PROBLEMS.filter((problem) => problem.stageId === stage.id);
   const count = stageProblems.length;
   if (count < 8) errors.push(`${stage.id}: 問題数が不足 (${count}/8)`);
-  if (stageProblems.some((problem) => problem.lessonRole)) {
-    for (const role of lessonRoles) {
-      if (!stageProblems.some((problem) => problem.lessonRole === role)) errors.push(`${stage.id}: ${role} 問題が不足`);
+  if (shallowProblemCounts[stage.id] && count !== shallowProblemCounts[stage.id]) {
+    errors.push(`${stage.id}: 問題数が仕様と不一致 (${count}/${shallowProblemCounts[stage.id]})`);
+  }
+  if (stage.lessonPlan) {
+    const requiredByRole = stage.lessonPlan.reduce((counts, role) => {
+      counts[role] = (counts[role] ?? 0) + 1;
+      return counts;
+    }, {});
+    for (const [role, required] of Object.entries(requiredByRole)) {
+      const available = stageProblems.filter((problem) => problem.lessonRole === role).length;
+      if (available < required) errors.push(`${stage.id}: ${role} 問題が不足 (${available}/${required})`);
     }
   }
   for (const tag of stage.focusTags ?? []) {

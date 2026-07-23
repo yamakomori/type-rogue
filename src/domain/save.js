@@ -1,10 +1,62 @@
 import { STARTER_EQUIPPED, STARTER_ITEMS } from "./economy.js";
 
 const SAVE_KEY = "type-rogue-mvp-save-v1";
+const CURRICULUM_VERSION = 2;
+const SHALLOW_STAGE_IDS = Array.from({ length: 11 }, (_, index) => `SH${String(index + 1).padStart(2, "0")}`);
+
+function hasStageExperience(save, stageId) {
+  const problemPrefix = `${stageId.toLowerCase()}-`;
+  return (save.stagePlayCounts?.[stageId] ?? 0) > 0
+    || (save.attempts ?? []).some((attempt) => attempt.stageId === stageId)
+    || (save.caughtFish ?? []).some((fish) => fish.stageId === stageId)
+    || (save.completedProblemIds ?? []).some((problemId) => problemId.startsWith(problemPrefix));
+}
+
+function migrateCurriculum(save) {
+  if ((save.curriculumVersion ?? 1) >= CURRICULUM_VERSION) return save;
+
+  const unlocked = new Set(save.unlockedStageIds ?? ["S00"]);
+  const unlockShallowsThrough = (count) => {
+    for (const stageId of SHALLOW_STAGE_IDS.slice(0, count)) unlocked.add(stageId);
+  };
+
+  // An unlocked legacy stage means its preceding lesson had already been cleared.
+  if (unlocked.has("S09")) unlocked.add("SH01");
+  if (unlocked.has("S10")) unlockShallowsThrough(7);
+  if (unlocked.has("S11")) unlockShallowsThrough(10);
+
+  if (hasStageExperience(save, "S09")) unlockShallowsThrough(7);
+  if (hasStageExperience(save, "S10")) unlockShallowsThrough(10);
+  if (hasStageExperience(save, "S11")) {
+    unlockShallowsThrough(11);
+    unlocked.add("CO01");
+  }
+
+  const currentStageMap = {
+    S09: "SH07",
+    S10: "SH10",
+    S11: "CO01",
+  };
+  const currentStageId = currentStageMap[save.currentStageId] ?? save.currentStageId ?? "S00";
+  if (currentStageId === "SH07") unlockShallowsThrough(7);
+  if (currentStageId === "SH10") unlockShallowsThrough(10);
+  if (currentStageId === "CO01") {
+    unlockShallowsThrough(11);
+    unlocked.add("CO01");
+  }
+
+  return {
+    ...save,
+    curriculumVersion: CURRICULUM_VERSION,
+    currentStageId,
+    unlockedStageIds: [...unlocked],
+  };
+}
 
 export function createSave() {
   return {
     schemaVersion: 1,
+    curriculumVersion: CURRICULUM_VERSION,
     medalRulesVersion: 4,
     currentStageId: "S00",
     unlockedStageIds: ["S00"],
@@ -33,16 +85,17 @@ export function loadSave(storage = localStorage) {
     if (!raw) return createSave();
     const saved = JSON.parse(raw);
     if (saved.schemaVersion !== 1) return createSave();
+    const migrated = migrateCurriculum(saved);
     const defaults = createSave();
     const merged = {
       ...defaults,
-      ...saved,
-      discoveredFishSpeciesIds: saved.discoveredFishSpeciesIds ?? [...new Set((saved.caughtFish ?? []).map((fish) => fish.speciesId))],
-      releasedFishCounts: { ...defaults.releasedFishCounts, ...saved.releasedFishCounts },
-      conceptSkills: { ...defaults.conceptSkills, ...saved.conceptSkills },
-      settings: { ...defaults.settings, ...saved.settings },
+      ...migrated,
+      discoveredFishSpeciesIds: migrated.discoveredFishSpeciesIds ?? [...new Set((migrated.caughtFish ?? []).map((fish) => fish.speciesId))],
+      releasedFishCounts: { ...defaults.releasedFishCounts, ...migrated.releasedFishCounts },
+      conceptSkills: { ...defaults.conceptSkills, ...migrated.conceptSkills },
+      settings: { ...defaults.settings, ...migrated.settings },
     };
-    return saved.medalRulesVersion === defaults.medalRulesVersion
+    return migrated.medalRulesVersion === defaults.medalRulesVersion
       ? merged
       : { ...merged, medalRulesVersion: defaults.medalRulesVersion, stageMedals: {} };
   } catch {
