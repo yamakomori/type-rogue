@@ -1,0 +1,123 @@
+# システム設計
+
+## 原則
+
+学習ロジック、ゲーム進行、表示を分離する。タイピングの正誤が UI や報酬の都合で変わらず、問題生成・分析を単体テストできる構成にする。
+
+## レイヤー
+
+```text
+UI
+  ├─ タイピング画面 / 地図 / 結果 / 装備
+  ↓ Action
+Application
+  ├─ SessionService / ProgressService / RewardService
+  ↓ Domain ports
+Domain
+  ├─ matcher / curriculum / generator / learning / economy / world
+  ↓ Repository
+Infrastructure
+  ├─ localStorage or IndexedDB / content JSON / asset loader
+```
+
+`Domain` はブラウザ API、DOM、音、画像を参照しない。`UI` は問題の正解ルールや報酬額を直接計算しない。
+
+## ディレクトリ案
+
+```text
+src/
+  domain/
+    typing/          # romaji table, matcher, keyboard layout
+    curriculum/      # stage definitions, mastery rules
+    generator/       # selector, validator, fallback problems
+    learning/        # key skill aggregation
+    economy/         # rewards, catalog, ownership
+    world/           # regions, nodes, unlocks
+  application/
+    startSession.ts
+    submitKey.ts
+    finishProblem.ts
+    equipItem.ts
+  ui/
+    screens/
+    components/
+    state/
+  content/
+    stages.json
+    vocabulary/
+    items.json
+    regions.json
+  infrastructure/
+    repositories/
+    analytics/
+  tests/
+```
+
+## 永続データ
+
+```ts
+type SaveData = {
+  schemaVersion: 1;
+  curriculum: { currentStageId: string; unlockedStageIds: string[] };
+  skills: Record<string, KeySkill>;
+  progress: { completedNodeIds: string[]; regionStates: Record<string, string> };
+  economy: { coins: number; xp: number };
+  inventory: AvatarState;
+  settings: {
+    keyboardLayout: "jis" | "us" | "unknown";
+    sound: boolean;
+    reducedMotion: boolean;
+    keyboardGuide: "full" | "compact" | "off";
+  };
+};
+```
+
+保存は初期版で IndexedDB を推奨する。読み込みに失敗した場合は、破損データを上書きせずバックアップして初期状態で開始する。スキーマ移行は `schemaVersion` ごとに明示する。
+
+## 主要ユースケース
+
+### 問題開始
+
+1. 現在ノード・ステージ・学習プロファイルを読む。
+2. `ProblemGenerator` が検証済みの問題を返す。
+3. `TypingSession` を生成し、UI が表示する。
+
+### 打鍵
+
+1. UI が正規化したキーを `TypingSession.submitKey` に渡す。
+2. マッチャーが正誤・進捗を返す。
+3. UI が進捗を描画し、分析用の最小イベントを蓄積する。
+4. 完了時だけ `finishProblem` を呼ぶ。
+
+### 問題完了
+
+1. 試行結果を `LearningService` へ渡し、キー技能を更新する。
+2. `RewardService` が重複なしの報酬を確定する。
+3. `ProgressService` がノード・地域の状態を更新する。
+4. 一つのトランザクションとして保存し、結果画面に渡す。
+
+## コンテンツの検証
+
+ビルド時または CI で以下を実行する。
+
+- 全 `kana` をローマ字マッチャーが処理できる。
+- 問題の使用キーが対象ステージの上限内にある。
+- 問題・アイテム・ノード ID が一意で、参照が切れていない。
+- フォールバック問題が各ステージに存在する。
+- アイテムのスロット、アセット、価格が正しい。
+
+## テスト優先順位
+
+1. ローマ字マッチャー、問題検証、報酬二重付与防止。
+2. 進捗・セーブ移行・中断復帰。
+3. 問題選択の苦手キー重みと重複回避。
+4. 主要画面のキーボード操作・小画面表示。
+
+## 初期リリースの範囲
+
+- S00〜S03、はじまりの庭、問題セット20〜30件。
+- ローマ字マッチャーの移植と、キー別の最小分析。
+- コイン、6〜12個の見た目アイテム、1体の相棒。
+- ローカルセーブ、音・動き・配列の基本設定。
+
+アカウント、同期、保護者ダッシュボード、自由入力保存、ガチャ、通知、ランキングは初期範囲から外す。
