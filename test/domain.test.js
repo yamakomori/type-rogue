@@ -4,7 +4,7 @@ import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, reviewKeysForStage, summarizePlay, updateSkills } from "../src/domain/learning.js";
 import { chooseProblems } from "../src/domain/problems.js";
 import { createSave, loadSave } from "../src/domain/save.js";
-import { fishCollectionStats, fishDiscovery, fishForCatch } from "../src/domain/fish.js";
+import { fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, releaseFish } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 import { createGameState } from "../src/game/state/gameReducer.js";
 
@@ -108,6 +108,14 @@ test("old medal rules reset prototype medals once", () => {
   assert.deepEqual(loadSave(storage).stageMedals, {});
 });
 
+test("old saves derive species discoveries from fish already in a tank", () => {
+  const fish = fishForCatch({ stageId: "S00", playCount: 1 });
+  const storage = {
+    getItem: () => JSON.stringify({ schemaVersion: 1, medalRulesVersion: 4, caughtFish: [fish] }),
+  };
+  assert.deepEqual(loadSave(storage).discoveredFishSpeciesIds, [fish.speciesId]);
+});
+
 test("a new adventure begins with the optional first typing guide only once", () => {
   const fresh = createSave();
   assert.equal(createGameState(fresh).screen, "intro");
@@ -127,11 +135,23 @@ test("every completed play produces one deterministic fish, with medals changing
 
 test("fish discovery counts only species found in the selected sea", () => {
   const first = fishForCatch({ stageId: "S00", playCount: 1 });
-  const discovery = fishDiscovery([first], ["S00"]);
+  const discovery = fishDiscovery([first.speciesId], ["S00"]);
   assert.equal(discovery.total, 2);
   assert.equal(discovery.discovered, 1);
-  assert.equal(discovery.counts["tide-goby"], 1);
-  assert.equal(discovery.counts["tide-shrimp"], 0);
+  assert.deepEqual(fishCountsBySpecies([first]), { "tide-goby": 1 });
+});
+
+test("releasing a fish removes only its tank instance and keeps its species discovery", () => {
+  const fish = fishForCatch({ stageId: "S00", playCount: 1 });
+  const save = {
+    ...createSave(),
+    caughtFish: [fish],
+    discoveredFishSpeciesIds: [fish.speciesId],
+  };
+  const released = releaseFish(save, fish.id);
+  assert.deepEqual(released.caughtFish, []);
+  assert.deepEqual(released.discoveredFishSpeciesIds, [fish.speciesId]);
+  assert.equal(released.releasedFishCounts.tidepool, 1);
 });
 
 test("every displayed review key is included in one of the selected problems", () => {

@@ -3,12 +3,13 @@ import { chooseProblems } from "../../domain/problems.js";
 import { equip, getItem, purchase, rewardForPlay, rewardForProblem } from "../../domain/economy.js";
 import { awardStageMedals, reviewKeysForStage, stageAccuracy, summarizePlay, updateSkills } from "../../domain/learning.js";
 import { createSave } from "../../domain/save.js";
-import { fishForCatch } from "../../domain/fish.js";
+import { fishForCatch, releaseFish } from "../../domain/fish.js";
+import { getRegionForStage } from "../../domain/regions.js";
 import { completedAttempt, startAttempt, submitKey } from "../../domain/session.js";
 
 export function createGameState(save) {
   const isNewAdventure = save.completedProblemIds.length === 0 && save.caughtFish.length === 0;
-  return { screen: !save.hasSeenIntro && isNewAdventure ? "intro" : "map", save, session: null, result: null, message: "" };
+  return { screen: !save.hasSeenIntro && isNewAdventure ? "intro" : "map", save, session: null, result: null, selectedTankId: "tidepool", releaseCandidateId: null, message: "" };
 }
 
 function startStage(state, stageId, allowLocked = false) {
@@ -97,11 +98,15 @@ function finishPlay(state) {
     stagePlayCounts: { ...state.save.stagePlayCounts, [stageId]: playCount },
     stageMedals: { ...state.save.stageMedals, [stageId]: medalAward.medals },
     caughtFish: [...state.save.caughtFish, caughtFish],
+    discoveredFishSpeciesIds: [...new Set([...state.save.discoveredFishSpeciesIds, caughtFish.speciesId])],
     unlockedStageIds: unlockedStageId
       ? [...state.save.unlockedStageIds, unlockedStageId]
       : state.save.unlockedStageIds,
     currentStageId: unlockedStageId ?? stageId,
   };
+  const nextStageId = nextStage && save.unlockedStageIds.includes(nextStage.id)
+    ? nextStage.id
+    : null;
   return {
     ...state,
     save,
@@ -114,11 +119,13 @@ function finishPlay(state) {
         xp: state.session.earned.xp + bonus.xp,
       },
       unlockedStageId,
+      nextStageId,
       accuracy: stageAccuracy(attempts, stageId),
       playSummary,
       newlyEarnedMedals: medalAward.newlyEarned,
       caughtFish,
       firstCatch: state.save.caughtFish.length === 0,
+      isNewSpecies: !state.save.discoveredFishSpeciesIds.includes(caughtFish.speciesId),
     },
   };
 }
@@ -161,11 +168,13 @@ export function gameReducer(state, action) {
       };
     }
     case "SHOW_MAP":
-      return { ...state, screen: "map", session: null, result: null, message: "" };
+      return { ...state, screen: "map", session: null, result: null, releaseCandidateId: null, message: "" };
     case "SHOW_WARDROBE":
       return { ...state, screen: "wardrobe", session: null, message: "" };
     case "SHOW_AQUARIUM":
-      return { ...state, screen: "aquarium", session: null, result: null, message: "" };
+      return { ...state, screen: "aquarium", session: null, result: null, releaseCandidateId: null, selectedTankId: action.regionId ?? state.selectedTankId ?? getRegionForStage(state.save.currentStageId).id, message: "" };
+    case "SELECT_TANK":
+      return { ...state, selectedTankId: action.regionId };
     case "SHOW_SETTINGS":
       return { ...state, screen: "settings", session: null, message: "" };
     case "TOGGLE_GUIDE":
@@ -182,6 +191,25 @@ export function gameReducer(state, action) {
       return outcome.ok
         ? { ...state, save: outcome.save, message: `${item.name}を みつけたよ。` }
         : { ...state, message: outcome.reason };
+    }
+    case "REQUEST_RELEASE":
+      return state.save.caughtFish.some((fish) => fish.id === action.fishId)
+        ? { ...state, releaseCandidateId: action.fishId }
+        : state;
+    case "CANCEL_RELEASE":
+      return { ...state, releaseCandidateId: null };
+    case "CONFIRM_RELEASE": {
+      const fishId = state.releaseCandidateId;
+      if (!fishId) return state;
+      return {
+        ...state,
+        save: releaseFish(state.save, fishId),
+        result: state.result?.caughtFish.id === fishId
+          ? { ...state.result, fishReleased: true }
+          : state.result,
+        releaseCandidateId: null,
+        message: "海へ逃がしたよ。図鑑には残るよ。",
+      };
     }
     case "RESET":
       return createGameState(createSave());

@@ -14,6 +14,8 @@ export function createSave() {
     stagePlayCounts: {},
     stageMedals: {},
     caughtFish: [],
+    discoveredFishSpeciesIds: [],
+    releasedFishCounts: {},
     hasSeenIntro: false,
     skills: {},
     coins: 0,
@@ -31,7 +33,13 @@ export function loadSave(storage = localStorage) {
     const saved = JSON.parse(raw);
     if (saved.schemaVersion !== 1) return createSave();
     const defaults = createSave();
-    const merged = { ...defaults, ...saved, settings: { ...defaults.settings, ...saved.settings } };
+    const merged = {
+      ...defaults,
+      ...saved,
+      discoveredFishSpeciesIds: saved.discoveredFishSpeciesIds ?? [...new Set((saved.caughtFish ?? []).map((fish) => fish.speciesId))],
+      releasedFishCounts: { ...defaults.releasedFishCounts, ...saved.releasedFishCounts },
+      settings: { ...defaults.settings, ...saved.settings },
+    };
     return saved.medalRulesVersion === defaults.medalRulesVersion
       ? merged
       : { ...merged, medalRulesVersion: defaults.medalRulesVersion, stageMedals: {} };

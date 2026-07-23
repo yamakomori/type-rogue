@@ -63,7 +63,9 @@ type SaveData = {
   skills: Record<string, KeySkill>;
   progress: { completedNodeIds: string[]; regionStates: Record<string, string> };
   economy: { coins: number; xp: number };
-  caughtFish: Array<{ id: string; speciesId: string; stageId: string; variant: string; size: string }>;
+  caughtFish: Array<{ id: string; speciesId: string; stageId: string; regionId: string; variant: string; size: string }>;
+  discoveredFishSpeciesIds: string[];
+  releasedFishCounts: Record<string, number>;
   inventory: AvatarState;
   settings: {
     keyboardLayout: "jis" | "us" | "unknown";
@@ -97,6 +99,12 @@ type SaveData = {
 2. `CatchService` が海域・プレイ回数・メダルから釣果を1匹確定する。
 3. `ProgressService` がノード・地域の状態を更新する。
 4. 一つのトランザクションとして保存し、結果画面に渡す。
+
+### 魚を海へ返す
+
+1. UI が確認を表示する。
+2. `TankService` が水槽にいる個体だけを取り除く。
+3. 発見済みの種と海域別のリリース数は保持する。
 
 ## コンテンツの検証
 
