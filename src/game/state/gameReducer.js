@@ -9,7 +9,8 @@ import { completedAttempt, startAttempt, submitKey } from "../../domain/session.
 
 export function createGameState(save) {
   const isNewAdventure = save.completedProblemIds.length === 0 && save.caughtFish.length === 0;
-  return { screen: !save.hasSeenIntro && isNewAdventure ? "intro" : "map", save, session: null, result: null, selectedTankId: "tidepool", releaseCandidateId: null, message: "" };
+  const currentRegionId = getRegionForStage(save.currentStageId).id;
+  return { screen: !save.hasSeenIntro && isNewAdventure ? "intro" : "map", save, session: null, result: null, selectedMapRegionId: currentRegionId, selectedTankId: currentRegionId, releaseCandidateId: null, message: "" };
 }
 
 function startStage(state, stageId, allowLocked = false) {
@@ -168,7 +169,9 @@ export function gameReducer(state, action) {
       };
     }
     case "SHOW_MAP":
-      return { ...state, screen: "map", session: null, result: null, releaseCandidateId: null, message: "" };
+      return { ...state, screen: "map", session: null, result: null, releaseCandidateId: null, selectedMapRegionId: getRegionForStage(state.save.currentStageId).id, message: "" };
+    case "SELECT_MAP_REGION":
+      return { ...state, selectedMapRegionId: action.regionId };
     case "SHOW_WARDROBE":
       return { ...state, screen: "wardrobe", session: null, message: "" };
     case "SHOW_AQUARIUM":

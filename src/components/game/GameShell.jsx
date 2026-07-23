@@ -76,8 +76,11 @@ function Avatar({ save }) {
 }
 
 function MapScreen({ state, dispatch, isDev }) {
-  const collection = fishCollectionStats(state.save.caughtFish);
-  return <section className="map-screen"><div className="map-hero sea-hero"><div><p className="eyebrow">きょうの海</p><h1>今日は、どの海へ行く？</h1><p>3つのことばを打つと、魚が1匹つれるよ。</p><button className="primary-button hero-action" onClick={() => dispatch({ type: "SHOW_AQUARIUM" })}>水槽をみる <small>{collection.total} 匹</small></button></div><AquariumPreview fish={state.save.caughtFish} emptyMessage="海へ出ると、魚に出会えるよ。" /></div><p className="map-lead">ぼうけんする海をえらぼう</p><div className="stage-list">{STAGES.map((stage, index) => {
+  const unlockedRegions = getUnlockedRegions(state.save.unlockedStageIds);
+  const region = getRegion(state.selectedMapRegionId);
+  const tankFish = state.save.caughtFish.filter((fish) => (fish.regionId ?? getFishSpecies(fish.speciesId).regionId) === region.id);
+  const regionStages = STAGES.filter((stage) => stage.regionId === region.id);
+  return <section className="map-screen"><div className="map-hero sea-hero"><div><p className="eyebrow">きょうの海</p><h1>今日は、{region.name}へ行く？</h1><p>{region.description}</p><button className="primary-button hero-action" onClick={() => dispatch({ type: "SHOW_AQUARIUM", regionId: region.id })}>水槽をみる <small>{tankFish.length} 匹</small></button></div><AquariumPreview fish={tankFish} emptyMessage="海へ出ると、魚に出会えるよ。" /></div>{unlockedRegions.length > 1 && <div className="map-region-tabs" role="tablist" aria-label="海域を選ぶ">{unlockedRegions.map((item) => <button key={item.id} role="tab" aria-selected={item.id === region.id} className={`map-region-tab ${item.id === region.id ? "selected" : ""}`} onClick={() => dispatch({ type: "SELECT_MAP_REGION", regionId: item.id })}>{item.name}</button>)}</div>}<p className="map-lead">{region.name}のレッスンをえらぼう</p><div className="stage-list">{regionStages.map((stage, index) => {
     const unlocked = state.save.unlockedStageIds.includes(stage.id);
     const current = state.save.currentStageId === stage.id;
     const plays = state.save.stagePlayCounts[stage.id] ?? 0;
