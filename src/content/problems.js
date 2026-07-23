@@ -1,3 +1,4 @@
+import { CORAL_PROBLEM_CONTENT } from "./coralProblems.js";
 import { SHALLOW_PROBLEM_CONTENT } from "./shallowProblems.js";
 
 function direct(stageId, entries) {
@@ -77,4 +78,5 @@ export const PROBLEM_CONTENT = [
     ["treasure", "水辺の あひる", "あひる", "ahiru"],
     ["treasure", "しおの かおり", "しお", "shio"],
   ]),
+  ...CORAL_PROBLEM_CONTENT,
 ];

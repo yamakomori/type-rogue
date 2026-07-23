@@ -17,7 +17,7 @@ export const REGION_CONTENT = [
     id: "coral-forest",
     name: "珊瑚の森",
     tankName: "珊瑚の森の水槽",
-    description: "覚えた規則を使って、意味のあることばを集める海。",
-    stageIds: ["CO01"],
+    description: "単語から短いフレーズへ、意味のあることばを集める海。",
+    stageIds: ["CO01", "CO02", "CO03", "CO04", "CO05", "CO06"],
   },
 ];

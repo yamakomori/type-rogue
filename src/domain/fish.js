@@ -16,8 +16,11 @@ export const FISH_SPECIES = [
   { id: "bubble-jelly", name: "あわクラゲ", habitat: "浅瀬", regionId: "shallows", stages: ["SH07"], color: "#ef8fa5", accent: "#ffe4eb", shape: "tall" },
   { id: "shell-octopus", name: "かくれだこ", habitat: "浅瀬", regionId: "shallows", stages: ["SH08", "SH09"], color: "#d67b68", accent: "#ffe0c7", shape: "round" },
   { id: "sun-threadfish", name: "ひだまりイトヒキ", habitat: "浅瀬", regionId: "shallows", stages: ["SH10", "SH11"], color: "#edca5f", accent: "#fff6b8", shape: "long" },
-  { id: "coral-butterfly", name: "さんごチョウチョウウオ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO01"], color: "#f19a5b", accent: "#fff0b8", shape: "round" },
-  { id: "coral-cardinal", name: "こもれびテンジクダイ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO01"], color: "#e86f75", accent: "#ffe5cb", shape: "long" },
+  { id: "coral-butterfly", name: "さんごチョウチョウウオ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO01", "CO02"], color: "#f19a5b", accent: "#fff0b8", shape: "round" },
+  { id: "coral-cardinal", name: "こもれびテンジクダイ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO01", "CO03"], color: "#e86f75", accent: "#ffe5cb", shape: "long" },
+  { id: "coral-parrotfish", name: "にじいろブダイ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO04"], color: "#55b79f", accent: "#f2d479", shape: "round" },
+  { id: "coral-cleaner-shrimp", name: "ことばエビ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO05"], color: "#ef8275", accent: "#fff0db", shape: "long" },
+  { id: "coral-turtle", name: "もりのアオウミガメ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#6caf83", accent: "#dff2a7", shape: "round" },
 ];
 
 export function getFishSpecies(speciesId) {

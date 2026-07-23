@@ -11,7 +11,7 @@ const SHALLOW_STAGE_IDS = Array.from({ length: 11 }, (_, index) => `SH${String(i
 const ACTIVE_STAGE_IDS = [
   ...Array.from({ length: 9 }, (_, index) => `S${String(index).padStart(2, "0")}`),
   ...SHALLOW_STAGE_IDS,
-  "CO01",
+  ...Array.from({ length: 6 }, (_, index) => `CO${String(index + 1).padStart(2, "0")}`),
 ];
 const LESSON_PLAN = ["intro", "intro", "practice", "practice", "mixed", "treasure"];
 
@@ -47,7 +47,7 @@ test("curriculum v2 uses explicit order and region-sized sessions", () => {
   for (const stageId of ACTIVE_STAGE_IDS.slice(0, 9)) {
     assert.equal(getStage(stageId).problemCount, 3);
   }
-  for (const stageId of [...SHALLOW_STAGE_IDS, "CO01"]) {
+  for (const stageId of [...SHALLOW_STAGE_IDS, ...Array.from({ length: 6 }, (_, index) => `CO${String(index + 1).padStart(2, "0")}`)]) {
     assert.equal(getStage(stageId).problemCount, 6);
     assert.deepEqual(getStage(stageId).lessonPlan, LESSON_PLAN);
   }
@@ -56,7 +56,7 @@ test("curriculum v2 uses explicit order and region-sized sessions", () => {
 });
 
 test("six-problem lessons fill repeated role slots without duplicates", () => {
-  for (const stageId of [...SHALLOW_STAGE_IDS, "CO01"]) {
+  for (const stageId of [...SHALLOW_STAGE_IDS, ...Array.from({ length: 6 }, (_, index) => `CO${String(index + 1).padStart(2, "0")}`)]) {
     const selected = chooseProblems({
       stageId,
       count: 6,

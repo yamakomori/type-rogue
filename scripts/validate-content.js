@@ -30,6 +30,13 @@ const shallowProblemCounts = {
   SH10: 30,
   SH11: 30,
 };
+const coralPhaseRules = {
+  CO02: { count: 30, minLength: 2, maxLength: 5, tag: "word-verb", kinds: ["word"] },
+  CO03: { count: 30, minLength: 2, maxLength: 6, tag: "word-descriptive", kinds: ["word"] },
+  CO04: { count: 30, minLength: 3, maxLength: 8, tag: "mixed-kana-word", kinds: ["word"] },
+  CO05: { count: 30, minLength: 5, maxLength: 10, tag: "phrase-particle", kinds: ["phrase"] },
+  CO06: { count: 30, minLength: 7, maxLength: 12, tag: "coral-challenge", kinds: ["word", "phrase"] },
+};
 const shallowKanaByStage = {
   SH01: "あいうえお",
   SH02: "あいうえおかきくけこ",
@@ -123,6 +130,20 @@ for (const problem of PROBLEMS) {
       errors.push(`${problem.id}: SH11で学ぶ濁音・半濁音の拗音がSH10に含まれている`);
     }
   }
+  const coralRule = coralPhaseRules[problem.stageId];
+  if (coralRule) {
+    const inputLength = [...problem.input].length;
+    if (!problem.lessonRole) errors.push(`${problem.id}: lessonRoleが不足`);
+    if (!coralRule.kinds.includes(problem.exerciseKind)) errors.push(`${problem.id}: exerciseKindが不正`);
+    if (!problem.learningTags?.includes(coralRule.tag)) errors.push(`${problem.id}: 主学習タグ ${coralRule.tag} が不足`);
+    if (!/^[ぁ-んー]+$/.test(problem.input)) errors.push(`${problem.id}: 入力にはひらがなと長音だけを使用する`);
+    if (inputLength < coralRule.minLength || inputLength > coralRule.maxLength) {
+      errors.push(`${problem.id}: 入力長が範囲外 (${inputLength}/${coralRule.minLength}〜${coralRule.maxLength})`);
+    }
+    if (problem.stageId === "CO04" && !/[んっーゃゅょ]/.test(problem.input)) {
+      errors.push(`${problem.id}: CO04の特殊かなが不足`);
+    }
+  }
   const stageInputs = inputsByStage.get(problem.stageId) ?? new Set();
   if (stageInputs.has(problem.input)) errors.push(`${problem.id}: 同ステージ内で入力が重複 (${problem.input})`);
   stageInputs.add(problem.input);
@@ -136,12 +157,35 @@ for (const problem of PROBLEMS.filter((item) => item.stageId.startsWith("SH"))) 
   progressiveInputs.set(problem.input, problem.id);
 }
 
+const japaneseInputOwners = new Map();
+for (const problem of PROBLEMS.filter((item) => item.inputMode === "ja-romaji")) {
+  const owners = japaneseInputOwners.get(problem.input) ?? [];
+  owners.push(problem);
+  japaneseInputOwners.set(problem.input, owners);
+}
+for (const [input, owners] of japaneseInputOwners) {
+  if (owners.length > 1 && owners.some((problem) => coralPhaseRules[problem.stageId])) {
+    errors.push(`Phase 2の入力が既存問題と重複 (${input}: ${owners.map((problem) => problem.id).join(" / ")})`);
+  }
+}
+
 for (const stage of STAGES) {
   const stageProblems = PROBLEMS.filter((problem) => problem.stageId === stage.id);
   const count = stageProblems.length;
   if (count < 8) errors.push(`${stage.id}: 問題数が不足 (${count}/8)`);
   if (shallowProblemCounts[stage.id] && count !== shallowProblemCounts[stage.id]) {
     errors.push(`${stage.id}: 問題数が仕様と不一致 (${count}/${shallowProblemCounts[stage.id]})`);
+  }
+  const coralRule = coralPhaseRules[stage.id];
+  if (coralRule && count !== coralRule.count) {
+    errors.push(`${stage.id}: 問題数が仕様と不一致 (${count}/${coralRule.count})`);
+  }
+  if (coralRule) {
+    const roleMinimums = { intro: 4, practice: 12, mixed: 6, treasure: 4 };
+    for (const [role, minimum] of Object.entries(roleMinimums)) {
+      const available = stageProblems.filter((problem) => problem.lessonRole === role).length;
+      if (available < minimum) errors.push(`${stage.id}: ${role} 問題がPhase 2基準未満 (${available}/${minimum})`);
+    }
   }
   if (stage.lessonPlan) {
     const requiredByRole = stage.lessonPlan.reduce((counts, role) => {

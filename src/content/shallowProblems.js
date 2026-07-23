@@ -193,7 +193,7 @@ const SH07 = shallowStage("SH07", [
   ["practice", "word", "冬の くだもの", "みかん", "みかん", "mikann", ["hatsuon", "n-final"]],
   ["mixed", "word", "遠くの 人と はなす", "でんわ", "でんわ", "denwa", ["hatsuon", "n-before-consonant"]],
   ["mixed", "word", "長く しまえる 食べもの", "かんづめ", "かんづめ", "kandume", ["hatsuon", "n-before-consonant", "d-row", "di-du"]],
-  ["mixed", "word", "海の やさい", "こんぶ", "こんぶ", "konbu", ["hatsuon", "n-before-consonant"]],
+  ["mixed", "word", "今日の 夜", "こんや", "こんや", "konnya", ["hatsuon", "n-before-y"]],
   ["mixed", "word", "空を とぶ むし", "とんぼ", "とんぼ", "tonbo", ["hatsuon", "n-before-consonant"]],
   ["mixed", "word", "力が わいてくる", "げんき", "げんき", "genki", ["hatsuon", "n-before-consonant"]],
   ["mixed", "word", "学校で おしえる 人", "せんせい", "せんせい", "sensei", ["hatsuon", "n-before-consonant"]],

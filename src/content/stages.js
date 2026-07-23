@@ -1,6 +1,6 @@
 const LETTER_KEYS = "abcdefghijklmnopqrstuvwxyz".split("");
 const WORD_KEYS = [...LETTER_KEYS, "-"];
-const SHALLOW_LESSON_PLAN = ["intro", "intro", "practice", "practice", "mixed", "treasure"];
+const SIX_PROBLEM_LESSON_PLAN = ["intro", "intro", "practice", "practice", "mixed", "treasure"];
 
 const tidepoolStage = (stage, order) => ({
   ...stage,
@@ -15,11 +15,26 @@ const shallowStage = (stage, order) => ({
   introducedKeys: stage.introducedKeys ?? [],
   availableKeys: WORD_KEYS,
   problemCount: 6,
-  lessonPlan: SHALLOW_LESSON_PLAN,
+  lessonPlan: SIX_PROBLEM_LESSON_PLAN,
   minAccuracy: 0.87,
   medalCriteria: {
     carefulMinAccuracy: 0.96,
     speedMaxMsPerKey: stage.speedMaxMsPerKey ?? 1350,
+  },
+});
+
+const coralStage = (stage, order) => ({
+  ...stage,
+  regionId: "coral-forest",
+  order,
+  introducedKeys: [],
+  availableKeys: WORD_KEYS,
+  problemCount: 6,
+  lessonPlan: SIX_PROBLEM_LESSON_PLAN,
+  minAccuracy: stage.minAccuracy ?? 0.88,
+  medalCriteria: {
+    carefulMinAccuracy: stage.carefulMinAccuracy ?? 0.96,
+    speedMaxMsPerKey: stage.speedMaxMsPerKey ?? 1450,
   },
 });
 
@@ -46,19 +61,10 @@ export const STAGE_CONTENT = [
   shallowStage({ id: "SH10", name: "浅瀬の小さい文字", description: "小さい「ゃ・ゅ・ょ」が入ることばを打とう。", focusTags: ["yoon", "k-yoon", "s-yoon", "t-yoon", "n-yoon", "h-yoon", "m-yoon", "r-yoon"], minCompletedPlays: 3, speedMaxMsPerKey: 1400 }, 18),
   shallowStage({ id: "SH11", name: "浅瀬のにごる小さい文字", description: "ぎゃ・じゃ・びょなどの音を練習しよう。", focusTags: ["yoon", "voiced", "semi-voiced", "g-yoon", "j-yoon", "d-yoon", "b-yoon", "p-yoon"], minCompletedPlays: 4, speedMaxMsPerKey: 1400 }, 19),
 
-  {
-    id: "CO01",
-    regionId: "coral-forest",
-    order: 20,
-    name: "珊瑚の森のことば",
-    description: "身近なものや自然のことばを、ていねいに打とう。",
-    introducedKeys: [],
-    availableKeys: WORD_KEYS,
-    focusTags: ["basic-word"],
-    problemCount: 6,
-    lessonPlan: SHALLOW_LESSON_PLAN,
-    minCompletedPlays: 4,
-    minAccuracy: 0.88,
-    medalCriteria: { carefulMinAccuracy: 0.96, speedMaxMsPerKey: 1400 },
-  },
+  coralStage({ id: "CO01", name: "珊瑚の森のことば", description: "身近なものや自然のことばを、ていねいに打とう。", focusTags: ["basic-word"], minCompletedPlays: 4, speedMaxMsPerKey: 1400 }, 20),
+  coralStage({ id: "CO02", name: "珊瑚の森のうごき", description: "歩く・見るなど、動きを表すことばを打とう。", focusTags: ["word-verb"], minCompletedPlays: 3 }, 21),
+  coralStage({ id: "CO03", name: "珊瑚の森のようす", description: "明るい・静かなど、様子を表すことばを打とう。", focusTags: ["word-descriptive"], minCompletedPlays: 3 }, 22),
+  coralStage({ id: "CO04", name: "珊瑚の森のまざる音", description: "「ん・っ・ー・ゃゅょ」が入ることばを復習しよう。", focusTags: ["mixed-kana-word"], minCompletedPlays: 4, minAccuracy: 0.89, carefulMinAccuracy: 0.97, speedMaxMsPerKey: 1500 }, 23),
+  coralStage({ id: "CO05", name: "珊瑚の森のつながり", description: "「を・に・で」などで、短いことばをつなごう。", focusTags: ["phrase-particle"], minCompletedPlays: 4, minAccuracy: 0.89, carefulMinAccuracy: 0.97, speedMaxMsPerKey: 1500 }, 24),
+  coralStage({ id: "CO06", name: "珊瑚の森チャレンジ", description: "森で集めたことばを、6つ続けてたどろう。", focusTags: ["coral-challenge"], minCompletedPlays: 5, minAccuracy: 0.9, carefulMinAccuracy: 0.97, speedMaxMsPerKey: 1550 }, 25),
 ];

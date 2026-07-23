@@ -50,6 +50,11 @@ const CONCEPT_LABELS = {
   "b-yoon": "びゃ・びゅ・びょ",
   "p-yoon": "ぴゃ・ぴゅ・ぴょ",
   "basic-word": "身近なことば",
+  "word-verb": "動きを表すことば",
+  "word-descriptive": "様子を表すことば",
+  "mixed-kana-word": "特殊なかなの混合",
+  "phrase-particle": "助詞つきフレーズ",
+  "coral-challenge": "珊瑚の森チャレンジ",
 };
 
 export function learningConceptLabel(tag) {

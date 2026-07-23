@@ -220,6 +220,23 @@ test("word-pattern mistakes are prioritized for a later play", () => {
   assert.equal(selected.some((problem) => problem.learningTags.includes("sokuon")), true);
 });
 
+test("structured lessons cover a review key and two review concepts together", () => {
+  let seed = 2;
+  const random = () => ((seed = (seed * 48271) % 2147483647) / 2147483647);
+  const selected = chooseProblems({
+    stageId: "SH07",
+    count: 6,
+    lessonPlan: ["intro", "intro", "practice", "practice", "mixed", "treasure"],
+    focusKeys: ["s"],
+    focusTags: ["n-before-vowel", "n-before-y"],
+    random,
+  });
+
+  assert.equal(selected.some((problem) => problem.targetKeys.includes("s")), true);
+  assert.equal(selected.some((problem) => problem.learningTags.includes("n-before-vowel")), true);
+  assert.equal(selected.some((problem) => problem.learningTags.includes("n-before-y")), true);
+});
+
 test("a structured word stage advertises only one review key and schedules it", () => {
   const save = {
     ...createSave(),
