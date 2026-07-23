@@ -1,0 +1,4 @@
+interface:
+  display_name: "Type Rogue 生き物スプライト"
+  short_description: "生き物候補の提案から4コマ実装とQAまで安全に進める"
+  default_prompt: "Use $type-rogue-creature-sprites to propose the next creature, check overlap and the real-species ratio, then implement it after approval."

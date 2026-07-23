@@ -4,7 +4,7 @@ import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, summarizePlay, updateConceptSkills, updateSkills } from "../src/domain/learning.js";
 import { chooseProblems, getProblemsForStage } from "../src/domain/problems.js";
 import { createSave, loadSave } from "../src/domain/save.js";
-import { fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, releaseFish } from "../src/domain/fish.js";
+import { FISH_SPECIES, fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, releaseFish } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 import { createGameState, gameReducer } from "../src/game/state/gameReducer.js";
 
@@ -171,6 +171,19 @@ test("sprite metadata belongs to the species and is not copied into saved catche
   });
   const caught = fishForCatch({ stageId: "SH01", playCount: 1 });
   assert.equal("sprite" in caught, false);
+});
+
+test("the five trial sprite species keep valid four-frame metadata", () => {
+  const spriteSpecies = FISH_SPECIES.filter((species) => species.sprite);
+  assert.deepEqual(
+    spriteSpecies.map((species) => species.id).sort(),
+    ["coral-butterfly", "deep-lantern", "sand-ray", "shallow-puffer", "shellfish"],
+  );
+  for (const species of spriteSpecies) {
+    assert.equal(species.sprite.frames, 4);
+    assert.equal(species.sprite.sourceFacing, "right");
+    assert.ok(species.sprite.frameMs >= 100);
+  }
 });
 
 test("fish discovery counts only species found in the selected sea", () => {
