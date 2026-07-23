@@ -3,6 +3,7 @@ import { STAGES, getStage } from "../../domain/curriculum.js";
 import { ITEMS, getItem } from "../../domain/economy.js";
 import { getFingerGuide } from "../../domain/fingers.js";
 import { fishCollectionStats, fishDiscovery, fishSpeciesForStages, getFishSpecies } from "../../domain/fish.js";
+import { reviewKeysForStage } from "../../domain/learning.js";
 import { loadSave, persistSave } from "../../domain/save.js";
 import { createGameState, gameReducer } from "../../game/state/gameReducer.js";
 import "../../styles.css";
@@ -74,7 +75,8 @@ function MapScreen({ state, dispatch, isDev }) {
     const current = state.save.currentStageId === stage.id;
     const plays = state.save.stagePlayCounts[stage.id] ?? 0;
     const discovery = fishDiscovery(state.save.caughtFish, [stage.id]);
-    return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}><span className="stage-number">{String(index + 1).padStart(2, "0")}</span><div><h2>{unlocked ? stage.name : "まだ いけない 海"}</h2><p>{unlocked ? stage.description : "ひとつ前の海で 魚をつると、ひらくよ。"}</p>{unlocked && <div className="stage-progress"><small>{plays} 回つりをした</small><small className="fish-discovery">出会った魚 {discovery.discovered}/{discovery.total}</small><StageMedals medals={state.save.stageMedals[stage.id]} /></div>}</div><button className="secondary-button" disabled={!unlocked} onClick={() => dispatch({ type: "START_STAGE", stageId: stage.id })}>この海へ</button></article>;
+    const reviewKeys = current ? reviewKeysForStage(state.save.skills, stage.availableKeys) : [];
+    return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}><span className="stage-number">{String(index + 1).padStart(2, "0")}</span><div><h2>{unlocked ? stage.name : "まだ いけない 海"}</h2><p>{unlocked ? stage.description : "ひとつ前の海で 魚をつると、ひらくよ。"}</p>{unlocked && <div className="stage-progress"><small>{plays} 回つりをした</small><small className="fish-discovery">出会った魚 {discovery.discovered}/{discovery.total}</small>{reviewKeys.length > 0 && <small className="review-current">{reviewKeys.map((key) => key.toUpperCase()).join("・")} をたどる</small>}<StageMedals medals={state.save.stageMedals[stage.id]} /></div>}</div><button className="secondary-button" disabled={!unlocked} onClick={() => dispatch({ type: "START_STAGE", stageId: stage.id })}>この海へ</button></article>;
   })}</div>{isDev && <details className="dev-stage-selector"><summary>開発用: 試すステージを選ぶ</summary><div>{STAGES.map((stage) => <button key={stage.id} className="secondary-button" onClick={() => dispatch({ type: "DEV_START_STAGE", stageId: stage.id })}>{stage.id}</button>)}</div></details>}</section>;
 }
 
@@ -100,12 +102,12 @@ function StageMedals({ medals = {}, onlyEarned = false }) {
 }
 
 function TypingScreen({ state, dispatch }) {
-  const { stage, index, problems, attempt, feedback } = state.session;
+  const { stage, index, problems, attempt, feedback, reviewKeys } = state.session;
   const display = attempt.matcher.display();
   const finger = getFingerGuide(display.next);
   const companionText = attempt.completed ? "みつけた！ 魚影が近づいているよ。" : feedback || (finger.label ? `${finger.label}で ${display.next === " " ? "Space" : display.next.toUpperCase()} を おそう。` : "つぎのキーを、ゆっくりさがそう。");
   const fishProgress = (index + (attempt.completed ? 1 : 0)) / problems.length;
-  return <section className={`typing-screen ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}><div className="typing-top"><button className="text-button" onClick={() => dispatch({ type: "SHOW_MAP" })}>← 海図へ</button><span>つり {index + 1} / {problems.length}</span></div><div className="typing-stage sea-typing-stage"><FishingProgress progress={fishProgress} /><p className="eyebrow">{stage.name}</p><p className="problem-title">{attempt.problem.title}</p><p className="problem-text" aria-label="入力する文字">{attempt.problem.text}</p><p className="input-guide" aria-label="ローマ字入力"><span className="typed">{display.typed || "\u00a0"}</span><span className="next">{display.next}</span><span className="rest">{display.rest}</span></p>{attempt.completed && <p className="clear-message">糸をたぐっている…</p>}</div>{state.save.settings.keyboardGuide && <KeyboardGuide expected={display.next} finger={finger} save={state.save} companionText={companionText} />}</section>;
+  return <section className={`typing-screen ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}><div className="typing-top"><button className="text-button" onClick={() => dispatch({ type: "SHOW_MAP" })}>← 海図へ</button><span>つり {index + 1} / {problems.length}</span></div><div className="typing-stage sea-typing-stage"><FishingProgress progress={fishProgress} /><p className="eyebrow">{reviewKeys.length > 0 ? `${reviewKeys.map((key) => key.toUpperCase()).join("・")} をたどる海` : stage.name}</p><p className="problem-title">{attempt.problem.title}</p><p className="problem-text" aria-label="入力する文字">{attempt.problem.text}</p><p className="input-guide" aria-label="ローマ字入力"><span className="typed">{display.typed || "\u00a0"}</span><span className="next">{display.next}</span><span className="rest">{display.rest}</span></p>{attempt.completed && <p className="clear-message">糸をたぐっている…</p>}</div>{state.save.settings.keyboardGuide && <KeyboardGuide expected={display.next} finger={finger} save={state.save} companionText={companionText} />}</section>;
 }
 
 function FishingProgress({ progress }) {

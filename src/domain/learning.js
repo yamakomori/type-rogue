@@ -20,6 +20,15 @@ export function updateSkills(skills, attempt) {
   return next;
 }
 
+export function reviewKeysForStage(skills = {}, availableKeys = [], max = 2) {
+  return [...new Set(availableKeys)]
+    .map((key) => ({ key, weight: skills[key]?.reviewWeight ?? 0 }))
+    .filter((entry) => entry.weight >= 0.75)
+    .sort((a, b) => b.weight - a.weight || a.key.localeCompare(b.key))
+    .slice(0, max)
+    .map((entry) => entry.key);
+}
+
 export function attemptAccuracy(attempt) {
   const total = attempt.acceptedKeystrokes + attempt.mistakes;
   return total === 0 ? 0 : attempt.acceptedKeystrokes / total;

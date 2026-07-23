@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { purchase } from "../src/domain/economy.js";
-import { awardStageMedals, summarizePlay, updateSkills } from "../src/domain/learning.js";
+import { awardStageMedals, reviewKeysForStage, summarizePlay, updateSkills } from "../src/domain/learning.js";
+import { chooseProblems } from "../src/domain/problems.js";
 import { loadSave } from "../src/domain/save.js";
 import { fishCollectionStats, fishDiscovery, fishForCatch } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
@@ -123,4 +124,22 @@ test("fish discovery counts only species found in the selected sea", () => {
   assert.equal(discovery.discovered, 1);
   assert.equal(discovery.counts["tide-goby"], 1);
   assert.equal(discovery.counts["tide-shrimp"], 0);
+});
+
+test("review keys stay within the stage and chooseProblems includes one of them", () => {
+  const skills = {
+    f: { reviewWeight: 1.5 },
+    j: { reviewWeight: 0.5 },
+    q: { reviewWeight: 3 },
+  };
+  const reviewKeys = reviewKeysForStage(skills, ["f", "j"]);
+  assert.deepEqual(reviewKeys, ["f"]);
+  const selected = chooseProblems({
+    stageId: "S00",
+    count: 3,
+    focusKeys: reviewKeys,
+    random: () => 0,
+  });
+  assert.equal(selected.length, 3);
+  assert.equal(selected[0].targetKeys.includes("f"), true);
 });

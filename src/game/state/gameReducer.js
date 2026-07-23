@@ -1,7 +1,7 @@
 import { getNextStage, getStage } from "../../domain/curriculum.js";
 import { chooseProblems } from "../../domain/problems.js";
 import { equip, getItem, purchase, rewardForPlay, rewardForProblem } from "../../domain/economy.js";
-import { awardStageMedals, stageAccuracy, summarizePlay, updateSkills } from "../../domain/learning.js";
+import { awardStageMedals, reviewKeysForStage, stageAccuracy, summarizePlay, updateSkills } from "../../domain/learning.js";
 import { createSave } from "../../domain/save.js";
 import { fishForCatch } from "../../domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../../domain/session.js";
@@ -13,11 +13,13 @@ export function createGameState(save) {
 function startStage(state, stageId, allowLocked = false) {
   if (!allowLocked && !state.save.unlockedStageIds.includes(stageId)) return state;
   const stage = getStage(stageId);
+  const reviewKeys = reviewKeysForStage(state.save.skills, stage.availableKeys);
   const problems = chooseProblems({
     stageId,
     skills: state.save.skills,
     recentIds: state.save.recentProblemIds,
     count: 3,
+    focusKeys: reviewKeys,
   });
   if (problems.length === 0) return { ...state, message: "この道の問題を準備中です。" };
   return {
@@ -32,6 +34,7 @@ function startStage(state, stageId, allowLocked = false) {
       earned: { coins: 0, xp: 0 },
       completedAttempts: [],
       feedback: "",
+      reviewKeys,
     },
   };
 }
