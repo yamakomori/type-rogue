@@ -9,6 +9,10 @@ const inputsByStage = new Map();
 
 for (const stage of STAGES) {
   if (!stage.id || !stage.name || stage.availableKeys.length === 0) errors.push(`ステージ定義が不完全: ${stage.id}`);
+  const criteria = stage.medalCriteria;
+  if (!criteria || !(criteria.carefulMinAccuracy > 0 && criteria.carefulMinAccuracy <= 1) || !(criteria.speedMaxMsPerKey > 0)) {
+    errors.push(`メダル基準が不正: ${stage.id}`);
+  }
 }
 
 for (const problem of PROBLEMS) {

@@ -31,3 +31,34 @@ export function stageAccuracy(attempts, stageId) {
   const mistakes = relevant.reduce((sum, attempt) => sum + attempt.mistakes, 0);
   return accepted + mistakes === 0 ? 0 : accepted / (accepted + mistakes);
 }
+
+export function summarizePlay(attempts) {
+  const acceptedKeystrokes = attempts.reduce((sum, attempt) => sum + attempt.acceptedKeystrokes, 0);
+  const mistakes = attempts.reduce((sum, attempt) => sum + attempt.mistakes, 0);
+  const durationMs = attempts.reduce((sum, attempt) => sum + attempt.durationMs, 0);
+  const expectedKeystrokes = attempts.reduce((sum, attempt) => sum + (attempt.estimatedKeystrokes ?? attempt.acceptedKeystrokes), 0);
+  const accuracy = acceptedKeystrokes + mistakes === 0 ? 0 : acceptedKeystrokes / (acceptedKeystrokes + mistakes);
+  const totalKeystrokes = acceptedKeystrokes + mistakes;
+  const kpm = durationMs === 0 ? 0 : Math.round((totalKeystrokes / durationMs) * 60000);
+  return { acceptedKeystrokes, mistakes, totalKeystrokes, expectedKeystrokes, durationMs, accuracy, kpm };
+}
+
+export function awardStageMedals(existing = {}, criteria, summary) {
+  const qualifiesCareful = summary.accuracy >= criteria.carefulMinAccuracy;
+  const speedTargetMs = summary.expectedKeystrokes * criteria.speedMaxMsPerKey;
+  const qualifiesSpeed = summary.durationMs <= speedTargetMs;
+  const qualifiesGold = qualifiesCareful && qualifiesSpeed;
+  const next = {
+    careful: existing.careful || qualifiesCareful,
+    speed: existing.speed || qualifiesSpeed,
+    gold: existing.gold || qualifiesGold,
+  };
+  return {
+    medals: next,
+    newlyEarned: {
+      careful: !existing.careful && qualifiesCareful,
+      speed: !existing.speed && qualifiesSpeed,
+      gold: !existing.gold && qualifiesGold,
+    },
+  };
+}

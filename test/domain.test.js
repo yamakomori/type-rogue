@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { purchase } from "../src/domain/economy.js";
-import { updateSkills } from "../src/domain/learning.js";
+import { awardStageMedals, summarizePlay, updateSkills } from "../src/domain/learning.js";
+import { loadSave } from "../src/domain/save.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 
 test("mistakes raise only the relevant key review weight", () => {
@@ -37,4 +38,69 @@ test("typing session records a miss without losing progress", () => {
   assert.equal(result.mistakes, 1);
   assert.equal(result.mistakeKeys.d, 1);
   assert.equal(result.completed, true);
+});
+
+test("stage medals are earned independently and remain earned", () => {
+  const summary = summarizePlay([
+    { acceptedKeystrokes: 18, mistakes: 1, durationMs: 30000 },
+    { acceptedKeystrokes: 18, mistakes: 1, durationMs: 30000 },
+    { acceptedKeystrokes: 18, mistakes: 0, durationMs: 30000 },
+  ]);
+  const first = awardStageMedals({}, {
+    carefulMinAccuracy: 0.9,
+    speedMaxMsPerKey: 2000,
+  }, summary);
+  assert.equal(first.newlyEarned.careful, true);
+  assert.equal(first.newlyEarned.speed, true);
+  assert.equal(first.newlyEarned.gold, true);
+
+  const slower = awardStageMedals(first.medals, {
+    carefulMinAccuracy: 0.9,
+    speedMaxMsPerKey: 100,
+  }, summary);
+  assert.deepEqual(slower.medals, { careful: true, speed: true, gold: true });
+  assert.deepEqual(slower.newlyEarned, { careful: false, speed: false, gold: false });
+});
+
+test("a careful but slow play earns only the careful medal", () => {
+  const result = awardStageMedals({}, {
+    carefulMinAccuracy: 0.95,
+    speedMaxMsPerKey: 1300,
+  }, summarizePlay([
+    { acceptedKeystrokes: 30, mistakes: 0, durationMs: 90000 },
+    { acceptedKeystrokes: 30, mistakes: 0, durationMs: 90000 },
+    { acceptedKeystrokes: 30, mistakes: 0, durationMs: 90000 },
+  ]));
+  assert.deepEqual(result.medals, { careful: true, speed: false, gold: false });
+});
+
+test("a fast play with small mistakes can earn only the speed medal", () => {
+  const result = awardStageMedals({}, {
+    carefulMinAccuracy: 0.97,
+    speedMaxMsPerKey: 900,
+  }, summarizePlay([
+    { acceptedKeystrokes: 30, mistakes: 3, durationMs: 25000 },
+    { acceptedKeystrokes: 30, mistakes: 3, durationMs: 25000 },
+    { acceptedKeystrokes: 30, mistakes: 2, durationMs: 25000 },
+  ]));
+  assert.deepEqual(result.medals, { careful: false, speed: true, gold: false });
+});
+
+test("a fast play with one mistake per correct key still earns the speed medal", () => {
+  const result = awardStageMedals({}, {
+    carefulMinAccuracy: 0.95,
+    speedMaxMsPerKey: 1600,
+  }, summarizePlay([
+    { acceptedKeystrokes: 20, mistakes: 20, durationMs: 30000 },
+    { acceptedKeystrokes: 20, mistakes: 20, durationMs: 30000 },
+    { acceptedKeystrokes: 20, mistakes: 20, durationMs: 30000 },
+  ]));
+  assert.deepEqual(result.medals, { careful: false, speed: true, gold: false });
+});
+
+test("old medal rules reset prototype medals once", () => {
+  const storage = {
+    getItem: () => JSON.stringify({ schemaVersion: 1, medalRulesVersion: 3, stageMedals: { S00: { careful: true, speed: true, gold: true } } }),
+  };
+  assert.deepEqual(loadSave(storage).stageMedals, {});
 });

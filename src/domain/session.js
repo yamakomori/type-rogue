@@ -46,5 +46,6 @@ export function completedAttempt(attempt, durationMs) {
     mistakeKeys: attempt.mistakeKeys,
     completed: true,
     targetKeys: attempt.problem.targetKeys,
+    estimatedKeystrokes: attempt.problem.estimatedKeystrokes,
   };
 }

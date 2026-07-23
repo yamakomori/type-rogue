@@ -70,8 +70,18 @@ function MapScreen({ state, dispatch, isDev }) {
     const unlocked = state.save.unlockedStageIds.includes(stage.id);
     const current = state.save.currentStageId === stage.id;
     const plays = state.save.stagePlayCounts[stage.id] ?? 0;
-    return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}><span className="stage-number">{String(index + 1).padStart(2, "0")}</span><div><h2>{unlocked ? stage.name : "まだ とおれない みち"}</h2><p>{unlocked ? stage.description : "ひとつ前の道を あるくと、ひらくよ。"}</p>{unlocked && <small>{plays} 回あるいた</small>}</div><button className="secondary-button" disabled={!unlocked} onClick={() => dispatch({ type: "START_STAGE", stageId: stage.id })}>{current ? "つづきへ" : "あるく"}</button></article>;
+    return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}><span className="stage-number">{String(index + 1).padStart(2, "0")}</span><div><h2>{unlocked ? stage.name : "まだ とおれない みち"}</h2><p>{unlocked ? stage.description : "ひとつ前の道を あるくと、ひらくよ。"}</p>{unlocked && <div className="stage-progress"><small>{plays} 回あるいた</small><StageMedals medals={state.save.stageMedals[stage.id]} /></div>}</div><button className="secondary-button" disabled={!unlocked} onClick={() => dispatch({ type: "START_STAGE", stageId: stage.id })}>{current ? "つづきへ" : "あるく"}</button></article>;
   })}</div>{isDev && <details className="dev-stage-selector"><summary>開発用: 試すステージを選ぶ</summary><div>{STAGES.map((stage) => <button key={stage.id} className="secondary-button" onClick={() => dispatch({ type: "DEV_START_STAGE", stageId: stage.id })}>{stage.id}</button>)}</div></details>}</section>;
+}
+
+function StageMedals({ medals = {}, onlyEarned = false }) {
+  const definitions = [
+    { key: "careful", label: "て", title: "ていねいさメダル" },
+    { key: "speed", label: "速", title: "スピードメダル" },
+    { key: "gold", label: "金", title: "ゴールドメダル" },
+  ];
+  const visible = onlyEarned ? definitions.filter((medal) => medals[medal.key]) : definitions;
+  return <div className="stage-medals" aria-label={`ていねいさ: ${medals.careful ? "獲得" : "未獲得"}、スピード: ${medals.speed ? "獲得" : "未獲得"}、ゴールド: ${medals.gold ? "獲得" : "未獲得"}`}>{visible.map((medal) => <span key={medal.key} className={`medal ${medal.key} ${medals[medal.key] ? "earned" : ""}`} title={medal.title}>{medal.label}</span>)}</div>;
 }
 
 function TypingScreen({ state, dispatch }) {
@@ -101,5 +111,6 @@ function SettingsScreen({ state, dispatch }) {
 
 function RewardOverlay({ state, dispatch }) {
   const nextName = state.result.unlockedStageId ? getStage(state.result.unlockedStageId).name : null;
-  return <section className="reward-overlay" role="dialog" aria-modal="true" aria-label="見つけたもの"><div className="reward-card"><div className="result-glow">✦</div><Avatar save={state.save} /><p className="eyebrow">小さな発見</p><h1>コインを {state.result.earned.coins} こ<br />みつけた！</h1><div className="found-item"><span>◌</span><strong>ひかりのコイン</strong><small>+{state.result.earned.coins}</small></div><p>{state.result.accuracy >= 0.85 ? "ゆっくり、ていねいに歩けたね。" : "最後まで あるけたね。すてき！"}</p>{nextName && <div className="next-route-group"><div><span>あたらしい道が ひらいた！</span><strong>{nextName}</strong></div><button className="primary-button route-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.unlockedStageId })}>すすむ <kbd>N</kbd></button></div>}<div className="result-actions"><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><strong>地図へ</strong><small><kbd>M</kbd></small></button><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.stage.id })}><strong>もう1回</strong><small><kbd>R</kbd></small></button></div></div></section>;
+  const earned = state.result.newlyEarnedMedals;
+  return <section className="reward-overlay" role="dialog" aria-modal="true" aria-label="見つけたもの"><div className="reward-card"><div className="result-glow">✦</div><Avatar save={state.save} /><p className="eyebrow">小さな発見</p><h1>コインを {state.result.earned.coins} こ<br />みつけた！</h1><div className="found-item"><span>◌</span><strong>ひかりのコイン</strong><small>+{state.result.earned.coins}</small></div>{(earned.careful || earned.speed || earned.gold) && <div className="new-medals"><span>あたらしいメダル</span><StageMedals medals={earned} onlyEarned /></div>}<p>{state.result.accuracy >= 0.85 ? "ゆっくり、ていねいに歩けたね。" : "最後まで あるけたね。すてき！"}</p>{nextName && <div className="next-route-group"><div><span>あたらしい道が ひらいた！</span><strong>{nextName}</strong></div><button className="primary-button route-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.unlockedStageId })}>すすむ <kbd>N</kbd></button></div>}<div className="result-actions"><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><strong>地図へ</strong><small><kbd>M</kbd></small></button><button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.stage.id })}><strong>もう1回</strong><small><kbd>R</kbd></small></button></div></div></section>;
 }

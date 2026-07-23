@@ -1,7 +1,7 @@
 import { getNextStage, getStage } from "../../domain/curriculum.js";
 import { chooseProblems } from "../../domain/problems.js";
 import { equip, getItem, purchase, rewardForPlay, rewardForProblem } from "../../domain/economy.js";
-import { stageAccuracy, updateSkills } from "../../domain/learning.js";
+import { awardStageMedals, stageAccuracy, summarizePlay, updateSkills } from "../../domain/learning.js";
 import { createSave } from "../../domain/save.js";
 import { completedAttempt, startAttempt, submitKey } from "../../domain/session.js";
 
@@ -73,12 +73,19 @@ function finishPlay(state) {
     && !state.save.unlockedStageIds.includes(nextStage.id)
     ? nextStage.id : null;
   const attempts = [...state.save.attempts, ...state.session.completedAttempts].slice(-300);
+  const playSummary = summarizePlay(state.session.completedAttempts);
+  const medalAward = awardStageMedals(
+    state.save.stageMedals[stageId],
+    state.session.stage.medalCriteria,
+    playSummary,
+  );
   const save = {
     ...state.save,
     coins: state.save.coins + bonus.coins,
     xp: state.save.xp + bonus.xp,
     attempts,
     stagePlayCounts: { ...state.save.stagePlayCounts, [stageId]: playCount },
+    stageMedals: { ...state.save.stageMedals, [stageId]: medalAward.medals },
     unlockedStageIds: unlockedStageId
       ? [...state.save.unlockedStageIds, unlockedStageId]
       : state.save.unlockedStageIds,
@@ -97,6 +104,8 @@ function finishPlay(state) {
       },
       unlockedStageId,
       accuracy: stageAccuracy(attempts, stageId),
+      playSummary,
+      newlyEarnedMedals: medalAward.newlyEarned,
     },
   };
 }

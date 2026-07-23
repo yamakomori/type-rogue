@@ -5,12 +5,14 @@ const SAVE_KEY = "type-rogue-mvp-save-v1";
 export function createSave() {
   return {
     schemaVersion: 1,
+    medalRulesVersion: 4,
     currentStageId: "S00",
     unlockedStageIds: ["S00"],
     completedProblemIds: [],
     attempts: [],
     recentProblemIds: [],
     stagePlayCounts: {},
+    stageMedals: {},
     skills: {},
     coins: 0,
     xp: 0,
@@ -26,7 +28,11 @@ export function loadSave(storage = localStorage) {
     if (!raw) return createSave();
     const saved = JSON.parse(raw);
     if (saved.schemaVersion !== 1) return createSave();
-    return { ...createSave(), ...saved, settings: { ...createSave().settings, ...saved.settings } };
+    const defaults = createSave();
+    const merged = { ...defaults, ...saved, settings: { ...defaults.settings, ...saved.settings } };
+    return saved.medalRulesVersion === defaults.medalRulesVersion
+      ? merged
+      : { ...merged, medalRulesVersion: defaults.medalRulesVersion, stageMedals: {} };
   } catch {
     return createSave();
   }
