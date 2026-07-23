@@ -8,7 +8,7 @@ const FINGERS = {
   u: ["right", "index", "右手の人さし指"], j: ["right", "index", "右手の人さし指"], m: ["right", "index", "右手の人さし指"],
   i: ["right", "middle", "右手の中指"], k: ["right", "middle", "右手の中指"], ",": ["right", "middle", "右手の中指"],
   o: ["right", "ring", "右手の薬指"], l: ["right", "ring", "右手の薬指"], ".": ["right", "ring", "右手の薬指"],
-  p: ["right", "pinky", "右手の小指"], ";": ["right", "pinky", "右手の小指"], "/": ["right", "pinky", "右手の小指"],
+  p: ["right", "pinky", "右手の小指"], ";": ["right", "pinky", "右手の小指"], "/": ["right", "pinky", "右手の小指"], "-": ["right", "pinky", "右手の小指"],
   " ": ["both", "thumb", "親指"],
 };
 

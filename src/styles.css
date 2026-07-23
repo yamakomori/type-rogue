@@ -41,3 +41,17 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 .fish-reward > .reward-fish { position:relative; display:block; left:auto !important; top:auto !important; width:72px; height:48px; margin:0 auto 7px; animation:fish-swim 5s ease-in-out infinite alternate; }
 @media (max-width: 640px) { .tank-fish-list { grid-template-columns:1fr; }.tank-fish-card { grid-template-columns:54px 1fr; }.tank-fish-card .release-button { grid-column:2; justify-self:start; padding:0; } }
 .release-confirm-overlay { position:fixed; z-index:30; inset:0; display:grid; place-items:center; padding:24px; background:#000e18bb; backdrop-filter:blur(5px); }.release-confirm-card { width:min(100%, 340px); padding:26px 25px 22px; border:1px solid #3a6d80; border-radius:22px; background:#08243a; box-shadow:0 20px 60px #000a13cc; text-align:center; }.release-confirm-card .fish-visual { position:relative; display:block; left:auto !important; top:auto !important; width:66px; height:44px; margin:0 auto 8px; animation:fish-swim 5s ease-in-out infinite alternate; }.release-confirm-card h2 { margin:3px 0 9px; font-size:1.35rem; line-height:1.35; }.release-confirm-card p:not(.eyebrow) { margin:0; color:#bdd4d4; font-size:.86rem; line-height:1.55; }.release-confirm-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:20px; }.release-confirm-actions .primary-button, .release-confirm-actions .secondary-button { min-width:0; padding-inline:8px; }
+
+/* 第二海域「浅瀬」。同じ画面構造のまま、水の明るさと砂地で海域差をつくる。 */
+.region-shallows .map-hero, .region-shallows .screen-heading { border-color:#397f83; background:linear-gradient(135deg, #0d4b56, #082c43); }
+.region-shallows .aquarium-preview { border-color:#53a7a1; background:linear-gradient(155deg, #16828a 0%, #0a596f 45%, #073550 100%); box-shadow:inset 0 0 48px #032435aa, 0 12px 28px #01101e55; }
+.region-shallows .aquarium-preview::before { background:linear-gradient(110deg, transparent 17%, #c8fff342 25%, transparent 34%), radial-gradient(ellipse at 50% 0%, #c7fff05c, transparent 60%); }
+.region-shallows .aquarium-sand { background:linear-gradient(0deg, #426c60, #6b9b7399); }
+.region-shallows .sea-typing-stage { border-color:#2b7479; background:radial-gradient(ellipse at 82% 16%, #42bdaf55, transparent 36%), #063348; }
+.region-shallows .fishing-progress .fishing-line { background:linear-gradient(#e4fff2, #e2c66f); }
+
+@media (max-width: 560px) {
+  .keyboard-guide { padding-inline:7px; }
+  .key-row { gap:3px; }
+  .keycap { min-width:23px; padding-inline:2px; }
+}

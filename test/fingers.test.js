@@ -12,3 +12,7 @@ test("home-position keys map to the correct hand and finger", () => {
 test("space uses a thumb guide", () => {
   assert.deepEqual(getFingerGuide(" "), { key: " ", side: "both", finger: "thumb", label: "親指" });
 });
+
+test("the long vowel key uses the right pinky guide", () => {
+  assert.deepEqual(getFingerGuide("-"), { key: "-", side: "right", finger: "pinky", label: "右手の小指" });
+});

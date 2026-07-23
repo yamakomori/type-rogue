@@ -18,6 +18,7 @@ export function createSave() {
     releasedFishCounts: {},
     hasSeenIntro: false,
     skills: {},
+    conceptSkills: {},
     coins: 0,
     xp: 0,
     ownedItemIds: STARTER_ITEMS,
@@ -38,6 +39,7 @@ export function loadSave(storage = localStorage) {
       ...saved,
       discoveredFishSpeciesIds: saved.discoveredFishSpeciesIds ?? [...new Set((saved.caughtFish ?? []).map((fish) => fish.speciesId))],
       releasedFishCounts: { ...defaults.releasedFishCounts, ...saved.releasedFishCounts },
+      conceptSkills: { ...defaults.conceptSkills, ...saved.conceptSkills },
       settings: { ...defaults.settings, ...saved.settings },
     };
     return saved.medalRulesVersion === defaults.medalRulesVersion

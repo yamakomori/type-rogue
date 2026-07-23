@@ -9,6 +9,10 @@ export const FISH_SPECIES = [
   { id: "moon-squid", name: "つきイカ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#b6a2ca", accent: "#e9e6f5", shape: "tall" },
   { id: "deep-lantern", name: "あかりアンコウ", habitat: "潮だまり", regionId: "tidepool", stages: ["S09"], color: "#7187a9", accent: "#f5cb6d", shape: "round" },
   { id: "deep-jelly", name: "よるクラゲ", habitat: "潮だまり", regionId: "tidepool", stages: ["S09"], color: "#a98cc2", accent: "#d8f3f0", shape: "tall" },
+  { id: "shallow-puffer", name: "ぷくぷくフグ", habitat: "浅瀬", regionId: "shallows", stages: ["S10"], color: "#e7b955", accent: "#fff0ac", shape: "round" },
+  { id: "sand-ray", name: "すなひかりエイ", habitat: "浅瀬", regionId: "shallows", stages: ["S10"], color: "#7db5a4", accent: "#d8f4df", shape: "long" },
+  { id: "ribbon-eel", name: "ゆらりウツボ", habitat: "浅瀬", regionId: "shallows", stages: ["S11"], color: "#8f86ce", accent: "#e7defb", shape: "long" },
+  { id: "bubble-jelly", name: "あわクラゲ", habitat: "浅瀬", regionId: "shallows", stages: ["S11"], color: "#ef8fa5", accent: "#ffe4eb", shape: "tall" },
 ];
 
 export function getFishSpecies(speciesId) {

@@ -9,6 +9,7 @@ const stageById = new Map(STAGES.map((stage) => [stage.id, stage]));
 const regionById = new Map(REGIONS.map((region) => [region.id, region]));
 const ids = new Set();
 const inputsByStage = new Map();
+const lessonRoles = new Set(["intro", "practice", "treasure"]);
 
 for (const stage of STAGES) {
   if (!stage.id || !stage.name || stage.availableKeys.length === 0) errors.push(`ステージ定義が不完全: ${stage.id}`);
@@ -40,6 +41,8 @@ for (const problem of PROBLEMS) {
   if (!stage) { errors.push(`存在しないステージを参照: ${problem.id} → ${problem.stageId}`); continue; }
   if (!problem.title || !problem.text || !problem.input || !problem.inputMode) errors.push(`問題の必須項目が不足: ${problem.id}`);
   if (!Array.isArray(problem.targetKeys) || problem.targetKeys.length === 0) errors.push(`targetKeysが不足: ${problem.id}`);
+  if (problem.lessonRole && !lessonRoles.has(problem.lessonRole)) errors.push(`${problem.id}: 未知のlessonRole ${problem.lessonRole}`);
+  if (problem.learningTags && !problem.learningTags.every((tag) => problem.tags?.includes(tag))) errors.push(`${problem.id}: learningTagsがtagsに含まれていない`);
   for (const key of problem.targetKeys) {
     if (!stage.availableKeys.includes(key)) errors.push(`${problem.id}: 未解禁キー ${key}`);
   }
@@ -59,8 +62,17 @@ for (const problem of PROBLEMS) {
 }
 
 for (const stage of STAGES) {
-  const count = PROBLEMS.filter((problem) => problem.stageId === stage.id).length;
+  const stageProblems = PROBLEMS.filter((problem) => problem.stageId === stage.id);
+  const count = stageProblems.length;
   if (count < 8) errors.push(`${stage.id}: 問題数が不足 (${count}/8)`);
+  if (stageProblems.some((problem) => problem.lessonRole)) {
+    for (const role of lessonRoles) {
+      if (!stageProblems.some((problem) => problem.lessonRole === role)) errors.push(`${stage.id}: ${role} 問題が不足`);
+    }
+  }
+  for (const tag of stage.focusTags ?? []) {
+    if (!stageProblems.some((problem) => problem.learningTags?.includes(tag))) errors.push(`${stage.id}: 学習タグ ${tag} の問題が不足`);
+  }
 }
 
 if (errors.length) {

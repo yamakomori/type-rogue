@@ -55,8 +55,18 @@ test("romaji matcher handles contextual n", () => {
   assert.equal(vowelMatcher.handleChar("a").completed, true);
 });
 
-test("S09 word data is valid kana for the matcher", () => {
-  const problems = getProblemsForStage("S09");
-  assert.ok(problems.length >= 8);
-  for (const problem of problems) assert.equal(validateKana(problem.input).valid, true, problem.id);
+test("romaji matcher accepts a hyphen for the long vowel mark", () => {
+  const matcher = new RomajiMatcher();
+  matcher.load("けーき");
+  const results = type(matcher, "ke-ki");
+  assert.equal(results.every((result) => result.accepted), true);
+  assert.equal(results.at(-1).completed, true);
+});
+
+test("Japanese word data is valid kana for the matcher", () => {
+  for (const stageId of ["S09", "S10", "S11"]) {
+    const problems = getProblemsForStage(stageId);
+    assert.ok(problems.length >= 8);
+    for (const problem of problems) assert.equal(validateKana(problem.input).valid, true, problem.id);
+  }
 });

@@ -1,12 +1,33 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { purchase } from "../src/domain/economy.js";
-import { awardStageMedals, reviewKeysForStage, summarizePlay, updateSkills } from "../src/domain/learning.js";
-import { chooseProblems } from "../src/domain/problems.js";
+import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, summarizePlay, updateConceptSkills, updateSkills } from "../src/domain/learning.js";
+import { chooseProblems, getProblemsForStage } from "../src/domain/problems.js";
 import { createSave, loadSave } from "../src/domain/save.js";
 import { fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, releaseFish } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
-import { createGameState } from "../src/game/state/gameReducer.js";
+import { createGameState, gameReducer } from "../src/game/state/gameReducer.js";
+
+function completeTypingPlay(state) {
+  let next = state;
+  let now = Date.now();
+  let guard = 0;
+  while (next.screen === "typing" && guard < 500) {
+    guard += 1;
+    if (next.session.attempt.completed) {
+      next = gameReducer(next, { type: "AUTO_ADVANCE" });
+    } else {
+      now += 50;
+      next = gameReducer(next, {
+        type: "TYPE_KEY",
+        key: next.session.attempt.matcher.display().next,
+        now,
+      });
+    }
+  }
+  assert.ok(guard < 500, "typing play should finish");
+  return next;
+}
 
 test("mistakes raise only the relevant key review weight", () => {
   const skills = updateSkills({}, {
@@ -116,6 +137,13 @@ test("old saves derive species discoveries from fish already in a tank", () => {
   assert.deepEqual(loadSave(storage).discoveredFishSpeciesIds, [fish.speciesId]);
 });
 
+test("old saves receive an empty concept learning profile", () => {
+  const storage = {
+    getItem: () => JSON.stringify({ schemaVersion: 1, medalRulesVersion: 4, skills: { f: { reviewWeight: 1 } } }),
+  };
+  assert.deepEqual(loadSave(storage).conceptSkills, {});
+});
+
 test("a new adventure begins with the optional first typing guide only once", () => {
   const fresh = createSave();
   assert.equal(createGameState(fresh).screen, "intro");
@@ -171,4 +199,57 @@ test("every displayed review key is included in one of the selected problems", (
   assert.equal(selected.length, 3);
   assert.equal(selected.some((problem) => problem.targetKeys.includes("f")), true);
   assert.equal(selected.some((problem) => problem.targetKeys.includes("j")), true);
+});
+
+test("word-pattern mistakes are prioritized for a later play", () => {
+  const conceptSkills = updateConceptSkills({}, {
+    learningTags: ["sokuon"],
+    mistakes: 2,
+  });
+  assert.deepEqual(reviewConceptsForStage(conceptSkills, ["hatsuon", "sokuon", "choon"]), ["sokuon"]);
+
+  const selected = chooseProblems({
+    stageId: "S10",
+    conceptSkills,
+    focusTags: ["sokuon"],
+    random: () => 0,
+  });
+  assert.deepEqual(selected.map((problem) => problem.lessonRole), ["intro", "practice", "treasure"]);
+  assert.equal(selected.some((problem) => problem.learningTags.includes("sokuon")), true);
+});
+
+test("shallows lessons contain a structured three-part problem pool", () => {
+  for (const stageId of ["S10", "S11"]) {
+    const problems = getProblemsForStage(stageId);
+    assert.equal(problems.length, 24);
+    assert.deepEqual(new Set(problems.map((problem) => problem.lessonRole)), new Set(["intro", "practice", "treasure"]));
+  }
+});
+
+test("the shallows has its own fish for both stages", () => {
+  for (const stageId of ["S10", "S11"]) {
+    const fish = fishForCatch({ stageId, playCount: 1 });
+    assert.equal(fish.regionId, "shallows");
+    assert.equal(fish.stageId, stageId);
+  }
+});
+
+test("finishing S09 unlocks the shallows and S10 can produce a shallows fish", () => {
+  const beforeUnlock = {
+    ...createSave(),
+    hasSeenIntro: true,
+    currentStageId: "S09",
+    unlockedStageIds: ["S09"],
+    stagePlayCounts: { S09: 2 },
+  };
+  let state = gameReducer(createGameState(beforeUnlock), { type: "START_STAGE", stageId: "S09" });
+  state = completeTypingPlay(state);
+  assert.equal(state.screen, "result");
+  assert.equal(state.result.unlockedStageId, "S10");
+  assert.equal(state.save.currentStageId, "S10");
+
+  state = gameReducer(state, { type: "START_STAGE", stageId: "S10" });
+  state = completeTypingPlay(state);
+  assert.equal(state.result.caughtFish.regionId, "shallows");
+  assert.ok(Object.values(state.save.conceptSkills).some((skill) => skill.exposures > 0));
 });

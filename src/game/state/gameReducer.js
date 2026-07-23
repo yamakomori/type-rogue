@@ -1,7 +1,7 @@
 import { getNextStage, getStage } from "../../domain/curriculum.js";
-import { chooseProblems } from "../../domain/problems.js";
+import { chooseProblems, getPracticeKeysForStage } from "../../domain/problems.js";
 import { equip, getItem, purchase, rewardForPlay, rewardForProblem } from "../../domain/economy.js";
-import { awardStageMedals, reviewKeysForStage, stageAccuracy, summarizePlay, updateSkills } from "../../domain/learning.js";
+import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, stageAccuracy, summarizePlay, updateConceptSkills, updateSkills } from "../../domain/learning.js";
 import { createSave } from "../../domain/save.js";
 import { fishForCatch, releaseFish } from "../../domain/fish.js";
 import { getRegionForStage } from "../../domain/regions.js";
@@ -16,13 +16,16 @@ export function createGameState(save) {
 function startStage(state, stageId, allowLocked = false) {
   if (!allowLocked && !state.save.unlockedStageIds.includes(stageId)) return state;
   const stage = getStage(stageId);
-  const reviewKeys = reviewKeysForStage(state.save.skills, stage.availableKeys);
+  const reviewKeys = reviewKeysForStage(state.save.skills, getPracticeKeysForStage(stageId));
+  const reviewConcepts = reviewConceptsForStage(state.save.conceptSkills, stage.focusTags);
   const problems = chooseProblems({
     stageId,
     skills: state.save.skills,
+    conceptSkills: state.save.conceptSkills,
     recentIds: state.save.recentProblemIds,
     count: 3,
     focusKeys: reviewKeys,
+    focusTags: reviewConcepts,
   });
   if (problems.length === 0) return { ...state, message: "この道の問題を準備中です。" };
   return {
@@ -38,6 +41,7 @@ function startStage(state, stageId, allowLocked = false) {
       completedAttempts: [],
       feedback: "",
       reviewKeys,
+      reviewConcepts,
     },
   };
 }
@@ -50,6 +54,7 @@ function completeProblem(state, nextAttempt, durationMs) {
     coins: state.save.coins + reward.coins,
     xp: state.save.xp + reward.xp,
     skills: updateSkills(state.save.skills, finished),
+    conceptSkills: updateConceptSkills(state.save.conceptSkills, finished),
     completedProblemIds: [...new Set([...state.save.completedProblemIds, finished.problemId])],
     recentProblemIds: [...state.save.recentProblemIds, finished.problemId].slice(-10),
   };

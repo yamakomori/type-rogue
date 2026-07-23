@@ -23,6 +23,7 @@ const SOKUON_SPELLINGS = ["ltu", "xtu", "ltsu", "xtsu"];
 function unitsAt(kana, pos) {
   const char = kana[pos];
   if (!char) return [];
+  if (char === "ー") return [{ spelling: "-", kanaLen: 1 }];
   if (char === "っ") {
     const following = unitsAt(kana, pos + 1);
     const doubled = following
