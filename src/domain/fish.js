@@ -15,6 +15,10 @@ export function getFishSpecies(speciesId) {
   return FISH_SPECIES.find((fish) => fish.id === speciesId) ?? FISH_SPECIES[0];
 }
 
+export function fishSpeciesForStages(stageIds = []) {
+  return FISH_SPECIES.filter((fish) => fish.stages.some((stageId) => stageIds.includes(stageId)));
+}
+
 export function fishForCatch({ stageId, playCount, medals = {} }) {
   const candidates = FISH_SPECIES.filter((fish) => fish.stages.includes(stageId));
   const species = candidates[(Math.max(playCount, 1) - 1) % candidates.length] ?? FISH_SPECIES[0];
@@ -33,5 +37,19 @@ export function fishCollectionStats(caughtFish = []) {
   return {
     total: caughtFish.length,
     species: new Set(caughtFish.map((fish) => fish.speciesId)).size,
+  };
+}
+
+export function fishDiscovery(caughtFish = [], stageIds = []) {
+  const species = fishSpeciesForStages(stageIds);
+  const caughtIds = new Set(caughtFish.map((fish) => fish.speciesId));
+  return {
+    total: species.length,
+    discovered: species.filter((fish) => caughtIds.has(fish.id)).length,
+    species,
+    counts: Object.fromEntries(species.map((fish) => [
+      fish.id,
+      caughtFish.filter((caught) => caught.speciesId === fish.id).length,
+    ])),
   };
 }

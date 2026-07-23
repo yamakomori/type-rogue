@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, summarizePlay, updateSkills } from "../src/domain/learning.js";
 import { loadSave } from "../src/domain/save.js";
-import { fishCollectionStats, fishForCatch } from "../src/domain/fish.js";
+import { fishCollectionStats, fishDiscovery, fishForCatch } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 
 test("mistakes raise only the relevant key review weight", () => {
@@ -114,4 +114,13 @@ test("every completed play produces one deterministic fish, with medals changing
   assert.equal(gold.speciesId, "tide-goby");
   assert.equal(gold.variant, "gold");
   assert.deepEqual(fishCollectionStats([common, gold]), { total: 2, species: 1 });
+});
+
+test("fish discovery counts only species found in the selected sea", () => {
+  const first = fishForCatch({ stageId: "S00", playCount: 1 });
+  const discovery = fishDiscovery([first], ["S00"]);
+  assert.equal(discovery.total, 2);
+  assert.equal(discovery.discovered, 1);
+  assert.equal(discovery.counts["tide-goby"], 1);
+  assert.equal(discovery.counts["tide-shrimp"], 0);
 });
