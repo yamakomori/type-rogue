@@ -32,6 +32,13 @@ const AQUARIUM_SLOT_ORDER = [
   21, 2, 17, 6, 22, 10, 13, 4, 19, 1, 15, 8,
 ];
 
+// Vertical swimming bands as % of tank height (slightly overlapping for a natural blend).
+const DEPTH_BANDS = {
+  top: [6, 34],
+  mid: [26, 60],
+  bottom: [54, 82],
+};
+
 function aquariumPosition(index, seed = 0) {
   const slot = AQUARIUM_SLOT_ORDER[index % AQUARIUM_SLOT_ORDER.length];
   const col = slot % 6;
@@ -157,7 +164,7 @@ function RegionNavigator({ regions, selectedId, onSelect, label }) {
   return <nav className="region-navigation" aria-label={label}>
     <div className="region-arrow-slot">
       {previous && <button className="region-arrow previous" onClick={() => onSelect(previous.id)} aria-label={`前の海、${previous.name}へ`}>
-        <UiIcon name="chevronLeft" size={24} />
+        <UiIcon name="chevronLeft" size={40} />
         <span><small><UiText>前の海</UiText></small><strong><UiText>{previous.name}</UiText></strong></span>
       </button>}
     </div>
@@ -174,7 +181,7 @@ function RegionNavigator({ regions, selectedId, onSelect, label }) {
     <div className="region-arrow-slot next-slot">
       {next && <button className="region-arrow next" onClick={() => onSelect(next.id)} aria-label={`次の海、${next.name}へ`}>
         <span><small><UiText>次の海</UiText></small><strong><UiText>{next.name}</UiText></strong></span>
-        <UiIcon name="chevronRight" size={24} />
+        <UiIcon name="chevronRight" size={40} />
       </button>}
     </div>
   </nav>;
@@ -243,7 +250,7 @@ function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNe
     "--sprite-image": `url("${species.sprite.src}")`,
     "--sprite-duration": `${species.sprite.frames * species.sprite.frameMs}ms`,
   } : {};
-  return <span ref={nodeRef} className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${roaming ? "roaming" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
+  return <span ref={nodeRef} className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${roaming ? "roaming" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, "--fish-scale": species.scale ?? 1, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
 }
 
 // Deterministic PRNG (mulberry32) so each fish wanders the same way across renders.
@@ -272,13 +279,23 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
       const x = parseFloat(info.base.left) || 10;
       const y = parseFloat(info.base.top) || 20;
       const slow = info.drift ? 0.55 : 1;
+      const school = info.school === true;
       return {
         node,
         random,
         sourceFacing: info.sourceFacing,
+        speciesId: info.speciesId,
+        depth: info.depth,
+        scale: info.scale ?? 1,
+        school,
+        center: null,
         x, y, tx: x, ty: y,
         facing: random() < 0.5 ? 1 : -1,
-        speed: (1.6 + random() * 2.2) * slow,      // % of tank per second
+        // Schooling fish swim a touch faster so they can keep up with the shoal.
+        speed: ((school ? 2.6 : 1.6) + random() * (school ? 1.4 : 2.2)) * slow,
+        offsetX: school ? (random() * 2 - 1) * 15 : 0,
+        offsetY: school ? (random() * 2 - 1) * 9 : 0,
+        flipDelay: 120 + random() * 520,          // each member turns a beat after the shoal
         bobAmp: (info.drift ? 1.1 : 0.5) + random() * 0.6,
         bobFreq: 0.4 + random() * 0.5,
         phase: random() * Math.PI * 2,
@@ -287,15 +304,22 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
       };
     });
 
-    const boundsFor = (fish) => {
+    const boundsFor = (entity) => {
       const width = container.clientWidth || 1;
       const height = container.clientHeight || 1;
-      const wPct = ((fish.node?.offsetWidth ?? 52) / width) * 100;
-      const hPct = ((fish.node?.offsetHeight ?? 34) / height) * 100;
+      const scale = entity.scale ?? 1;   // bigger fish reserve more room so they never clip the frame
+      const wPct = (((entity.node?.offsetWidth ?? 52) * scale) / width) * 100;
+      const hPct = (((entity.node?.offsetHeight ?? 34) * scale) / height) * 100;
       const xMin = 1.5;
-      const yMin = 4;
-      return { xMin, xMax: Math.max(xMin, 98.5 - wPct), yMin, yMax: Math.max(yMin, 84 - hPct) };
+      const xMax = Math.max(xMin, 98.5 - wPct);
+      const frameYMax = Math.max(4, 84 - hPct);
+      const band = DEPTH_BANDS[entity.depth] ?? DEPTH_BANDS.mid;
+      const yMin = Math.min(band[0], frameYMax);
+      const yMax = Math.min(Math.max(band[1], yMin + 1), frameYMax);
+      return { xMin, xMax, yMin, yMax };
     };
+
+    const clamp = (value, lo, hi) => Math.min(hi, Math.max(lo, value));
 
     const place = (fish) => {
       if (fish.node) {
@@ -308,11 +332,11 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
     const reduce = typeof window !== "undefined" && window.matchMedia
       && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Clamp the initial scattered position so no fish starts outside the frame.
+    // Clamp the initial scattered position into the frame and the fish's depth band.
     fishes.forEach((fish) => {
       const { xMin, xMax, yMin, yMax } = boundsFor(fish);
-      fish.x = Math.min(xMax, Math.max(xMin, fish.x));
-      fish.y = Math.min(yMax, Math.max(yMin, fish.y));
+      fish.x = clamp(fish.x, xMin, xMax);
+      fish.y = clamp(fish.y, yMin, yMax);
       fish.tx = fish.x;
       fish.ty = fish.y;
     });
@@ -322,19 +346,64 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
       return undefined;
     }
 
-    const retarget = (fish, now) => {
+    // Same-species schooling fish share a wandering shoal center to cluster around.
+    const schools = new Map();
+    for (const fish of fishes) {
+      if (!fish.school || !fish.node) continue;
+      let center = schools.get(fish.speciesId);
+      if (!center) {
+        const random = makeFishRandom(stableFishNumber({ speciesId: fish.speciesId }));
+        center = {
+          random,
+          depth: fish.depth,
+          node: undefined,
+          x: fish.x, y: fish.y, tx: fish.x, ty: fish.y,
+          facing: fish.facing,
+          speed: 1.2 + random() * 1,
+          lastFlipAt: -1e4,
+          nextRetargetAt: 0,
+        };
+        schools.set(fish.speciesId, center);
+      }
+      fish.center = center;
+    }
+
+    // Start members already gathered around their shoal so it doesn't visibly assemble on open.
+    for (const fish of fishes) {
+      if (!fish.center) continue;
       const { xMin, xMax, yMin, yMax } = boundsFor(fish);
-      fish.tx = xMin + fish.random() * (xMax - xMin);
-      fish.ty = yMin + fish.random() * (yMax - yMin);
-      fish.nextRetargetAt = now + 3200 + fish.random() * 4200;
-      const dx = fish.tx - fish.x;
+      fish.x = clamp(fish.center.x + fish.offsetX, xMin, xMax);
+      fish.y = clamp(fish.center.y + fish.offsetY, yMin, yMax);
+      fish.tx = fish.x;
+      fish.ty = fish.y;
+      fish.facing = fish.center.facing;
+    }
+
+    const retarget = (entity, now) => {
+      const { xMin, xMax, yMin, yMax } = boundsFor(entity);
+      entity.tx = xMin + entity.random() * (xMax - xMin);
+      entity.ty = yMin + entity.random() * (yMax - yMin);
+      entity.nextRetargetAt = now + 3200 + entity.random() * 4200;
+      const dx = entity.tx - entity.x;
       if (Math.abs(dx) > 9) {
         const desired = dx > 0 ? 1 : -1;
-        if (desired !== fish.facing && now - fish.lastFlipAt > 2600) {
-          fish.facing = desired;
-          fish.lastFlipAt = now;
+        if (desired !== entity.facing && now - entity.lastFlipAt > 2600) {
+          entity.facing = desired;
+          entity.lastFlipAt = now;
         }
       }
+    };
+
+    const advance = (entity, dt) => {
+      const dx = entity.tx - entity.x;
+      const dy = entity.ty - entity.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0.001) {
+        const move = Math.min(dist, entity.speed * dt);
+        entity.x += (dx / dist) * move;
+        entity.y += (dy / dist) * move;
+      }
+      return dist;
     };
 
     let raf = 0;
@@ -347,18 +416,30 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
     const frame = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+
+      // Move each shoal center first so its members can follow it this frame.
+      for (const center of schools.values()) {
+        if (now >= center.nextRetargetAt) retarget(center, now);
+        const dist = advance(center, dt);
+        if (dist < 0.6) center.nextRetargetAt = Math.min(center.nextRetargetAt, now + 400 + center.random() * 900);
+      }
+
       for (const fish of fishes) {
         if (!fish.node) continue;
-        if (now >= fish.nextRetargetAt) retarget(fish, now);
-        const dx = fish.tx - fish.x;
-        const dy = fish.ty - fish.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < 0.6) {
+        if (fish.center) {
+          const { xMin, xMax, yMin, yMax } = boundsFor(fish);
+          fish.tx = clamp(fish.center.x + fish.offsetX, xMin, xMax);
+          fish.ty = clamp(fish.center.y + fish.offsetY, yMin, yMax);
+          // Follow the shoal's turn, but a beat later than its neighbours so it doesn't snap in unison.
+          if (fish.facing !== fish.center.facing && now >= fish.center.lastFlipAt + fish.flipDelay) {
+            fish.facing = fish.center.facing;
+          }
+        } else if (now >= fish.nextRetargetAt) {
+          retarget(fish, now);
+        }
+        const dist = advance(fish, dt);
+        if (!fish.center && dist < 0.6) {
           fish.nextRetargetAt = Math.min(fish.nextRetargetAt, now + 200 + fish.random() * 500);
-        } else {
-          const move = Math.min(dist, fish.speed * dt);
-          fish.x += (dx / dist) * move;
-          fish.y += (dy / dist) * move;
         }
         const bob = Math.sin((now / 1000) * fish.bobFreq + fish.phase) * fish.bobAmp;
         fish.node.style.left = `${fish.x}%`;
@@ -385,8 +466,12 @@ function AquariumPreview({ fish = [], emptyMessage, compact = false }) {
     const species = getFishSpecies(caughtFish.speciesId);
     return {
       seed: stableFishNumber(caughtFish),
+      speciesId: species.id,
       sourceFacing: species.sprite?.sourceFacing ?? "right",
       drift: (species.movement ?? "cruise") === "drift",
+      school: species.school === true,
+      depth: species.depth ?? "mid",
+      scale: species.scale ?? 1,
       base: aquariumPosition(index, stableFishNumber(caughtFish)),
     };
   });
