@@ -13,8 +13,6 @@ import {
   getFishSpecies,
   selectAquariumFish,
 } from "../../domain/fish.js";
-import { learningConceptLabel, reviewConceptsForStage, reviewKeysForStage } from "../../domain/learning.js";
-import { getPracticeKeysForStage } from "../../domain/problems.js";
 import { getRegion, getRegionForStage, getUnlockedRegions } from "../../domain/regions.js";
 import { loadSave, persistSave } from "../../domain/save.js";
 import { createGameState, gameReducer } from "../../game/state/gameReducer.js";
@@ -126,7 +124,8 @@ export default function GameShell() {
         : null;
 
   return <div className={`app-shell ${backdropRegionId ? `region-backdrop-${backdropRegionId}` : ""} ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}>
-    {state.screen !== "intro" && <Header save={state.save} onMap={() => navigation("SHOW_MAP")} onAquarium={() => navigation("SHOW_AQUARIUM")} onWardrobe={() => navigation("SHOW_WARDROBE")} onSettings={() => navigation("SHOW_SETTINGS")} />}
+    {/* タイピング中はヘッダーを隠す。高さを問題に回せるし、練習中に誤って別画面へ飛ばない。 */}
+    {state.screen !== "intro" && state.screen !== "typing" && <Header save={state.save} onMap={() => navigation("SHOW_MAP")} onAquarium={() => navigation("SHOW_AQUARIUM")} onWardrobe={() => navigation("SHOW_WARDROBE")} onSettings={() => navigation("SHOW_SETTINGS")} />}
     {content}
     {state.screen === "result" && <RewardOverlay state={state} dispatch={dispatch} />}
     {state.releaseCandidateId && <ReleaseConfirmDialog state={state} dispatch={dispatch} />}
@@ -169,7 +168,7 @@ function RegionNavigator({ regions, selectedId, onSelect, label }) {
     <div className="region-arrow-slot">
       {previous && <button className="region-arrow previous" onClick={() => onSelect(previous.id)} aria-label={`前の海、${previous.name}へ`}>
         <UiIcon name="chevronLeft" size={40} />
-        <span><small><UiText>前の海</UiText></small><strong><UiText>{previous.name}</UiText></strong></span>
+        <span><strong><UiText>{previous.name}</UiText></strong></span>
       </button>}
     </div>
     <div className="region-dots" role="tablist" aria-label={label}>
@@ -184,7 +183,7 @@ function RegionNavigator({ regions, selectedId, onSelect, label }) {
     </div>
     <div className="region-arrow-slot next-slot">
       {next && <button className="region-arrow next" onClick={() => onSelect(next.id)} aria-label={`次の海、${next.name}へ`}>
-        <span><small><UiText>次の海</UiText></small><strong><UiText>{next.name}</UiText></strong></span>
+        <span><small></small><strong><UiText>{next.name}</UiText></strong></span>
         <UiIcon name="chevronRight" size={40} />
       </button>}
     </div>
@@ -215,7 +214,6 @@ function MapScreen({ state, dispatch, isDev }) {
     </div>
     {unlockedRegions.length > 1 && <RegionNavigator regions={unlockedRegions} selectedId={region.id} onSelect={selectRegion} label="海域を選ぶ" />}
     <div className="section-intro">
-      <p className="eyebrow"><UiText>{region.name}</UiText></p>
       <h2><UiText>レッスンをえらぼう</UiText></h2>
     </div>
     <div className="stage-list">{regionStages.map((stage, index) => {
@@ -223,8 +221,6 @@ function MapScreen({ state, dispatch, isDev }) {
     const current = state.save.currentStageId === stage.id;
     const plays = state.save.stagePlayCounts[stage.id] ?? 0;
     const discovery = fishDiscovery(state.save.discoveredFishSpeciesIds, [stage.id]);
-    const reviewKeys = current ? reviewKeysForStage(state.save.skills, getPracticeKeysForStage(stage.id), stage.focusTags?.length ? 1 : 2) : [];
-    const reviewConcepts = current ? reviewConceptsForStage(state.save.conceptSkills, stage.focusTags) : [];
     return <article key={stage.id} className={`stage-card ${unlocked ? "" : "locked"} ${current ? "current" : ""}`}>
       <span className="stage-number">{String(index + 1).padStart(2, "0")}</span>
       <div className="stage-copy">
@@ -233,8 +229,6 @@ function MapScreen({ state, dispatch, isDev }) {
         {unlocked && <div className="stage-progress">
           <small><UiText>{plays} 回つりをした</UiText></small>
           <small className="fish-discovery"><UiText>出会った魚</UiText> {discovery.discovered}/{discovery.total}</small>
-          {reviewKeys.length > 0 && <small className="review-current"><UiText>次の{stage.problemCount ?? 3}問で練習するキー：</UiText>{reviewKeys.map((key) => key.toUpperCase()).join("・")}</small>}
-          {reviewConcepts.length > 0 && <small className="review-current"><UiText>次の{stage.problemCount ?? 3}問で練習することば：{reviewConcepts.map(learningConceptLabel).join("・")}</UiText></small>}
           <StageMedals medals={state.save.stageMedals[stage.id]} />
         </div>}
       </div>
@@ -250,9 +244,12 @@ function MapScreen({ state, dispatch, isDev }) {
 function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNew = false, position: requestedPosition, roaming = false, nodeRef }) {
   const species = getFishSpecies(caughtFish?.speciesId);
   const position = requestedPosition ?? { left: `${9 + ((index * 19) % 76)}%`, top: `${20 + ((index * 23) % 54)}%` };
+  const spriteDuration = species.sprite ? species.sprite.frames * species.sprite.frameMs : 0;
   const spriteStyle = species.sprite ? {
     "--sprite-image": `url("${species.sprite.src}")`,
-    "--sprite-duration": `${species.sprite.frames * species.sprite.frameMs}ms`,
+    "--sprite-duration": `${spriteDuration}ms`,
+    // Offset each individual's frame cycle so they don't all blow bubbles in unison.
+    "--sprite-delay": `-${stableFishNumber(caughtFish) % spriteDuration}ms`,
   } : {};
   return <span ref={nodeRef} className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${roaming ? "roaming" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, "--fish-scale": species.scale ?? 1, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{isNew && <span className="new-fish-badge">NEW</span>}</span>;
 }
@@ -561,33 +558,35 @@ function MedalPattern({ type }) {
 }
 
 function TypingScreen({ state, dispatch }) {
-  const { stage, index, problems, attempt, feedback, reviewKeys, reviewConcepts } = state.session;
+  const { stage, index, problems, attempt, feedback } = state.session;
   const display = attempt.matcher.display();
   const finger = getFingerGuide(display.next);
   const companionText = attempt.completed ? "みつけた！ 魚影が近づいているよ。" : feedback || (finger.label ? `${finger.label}で ${display.next === " " ? "Space" : display.next.toUpperCase()} を おそう。` : "つぎのキーを、ゆっくりさがそう。");
   const fishProgress = (index + (attempt.completed ? 1 : 0)) / problems.length;
-  const currentReviewKeys = reviewKeys.filter((key) => attempt.problem.targetKeys.includes(key));
-  const currentReviewConcepts = reviewConcepts.filter((tag) => attempt.problem.learningTags?.includes(tag));
+  // 海図のステージカードと同じ、海域内の通し番号。
+  const stageNumber = STAGES.filter((item) => item.regionId === stage.regionId).findIndex((item) => item.id === stage.id) + 1;
   return <section className={`typing-screen region-${stage.regionId} ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}>
+    {/* ステージ名は枠の外、「やめる」と同じ行へ。行をひとつ増やさずに見出しを立てられる。 */}
     <div className="typing-top">
       <button className="text-button exit-lesson-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><UiIcon name="chevronLeft" size={18} /><span>やめる</span></button>
-      <span className="typing-count"><UiText>つり</UiText> <strong>{index + 1}</strong> / {problems.length}</span>
+      <p className="eyebrow typing-stage-name"><span className="typing-stage-number">{String(stageNumber).padStart(2, "0")}</span><UiText>{stage.name}</UiText></p>
     </div>
     <div className="typing-stage sea-typing-stage">
       <FishingProgress progress={fishProgress} stageId={stage.id} />
-      <p className="eyebrow"><UiText>{stage.name}</UiText></p>
-      <div className="practice-notes">
-        {currentReviewKeys.length > 0 && <p className="practice-key"><UiText>この問題で練習するキー：</UiText>{currentReviewKeys.map((key) => key.toUpperCase()).join("・")}</p>}
-        {currentReviewConcepts.length > 0 && <p className="practice-key"><UiText>この問題で練習することば：{currentReviewConcepts.map(learningConceptLabel).join("・")}</UiText></p>}
-      </div>
       <p className="problem-title"><UiText>{attempt.problem.title}</UiText></p>
       <p className="problem-text" aria-label="入力する文字">{attempt.problem.text}</p>
       <p className="input-guide" aria-label="ローマ字入力"><span className="input-guide-typed">{display.typed}</span><span className="input-guide-next">{display.next}</span><span className="input-guide-rest">{display.rest}</span></p>
     </div>
-    {state.save.settings.keyboardGuide && <div className="keyboard-section">
-      <div className="keyboard-section-label"><span /><UiText>つぎに おす キー</UiText><span /></div>
-      <KeyboardGuide expected={display.next} finger={finger} save={state.save} companionText={companionText} />
-    </div>}
+    {/* 罫線ラベルの位置は進捗表示に譲る。キーボードガイドを隠していても進捗は出したいので、
+        ラベル自体はガイドの表示設定によらず常に描く。 */}
+    <div className="keyboard-section">
+      <div className="keyboard-section-label">
+        <span className="section-rule" />
+        <span className="typing-count"><UiText>つり</UiText> <strong>{index + 1}</strong> / {problems.length}</span>
+        <span className="section-rule" />
+      </div>
+      {state.save.settings.keyboardGuide && <KeyboardGuide expected={display.next} finger={finger} save={state.save} companionText={companionText} />}
+    </div>
   </section>;
 }
 
