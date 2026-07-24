@@ -42,7 +42,7 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 @media (max-width: 640px) { .tank-fish-list { grid-template-columns:1fr; }.tank-fish-card { grid-template-columns:54px 1fr; }.tank-fish-card .release-button { grid-column:2; justify-self:start; padding:0; } }
 .release-confirm-overlay { position:fixed; z-index:30; inset:0; display:grid; place-items:center; padding:24px; background:#000e18bb; backdrop-filter:blur(5px); }.release-confirm-card { width:min(100%, 340px); padding:26px 25px 22px; border:1px solid #3a6d80; border-radius:22px; background:#08243a; box-shadow:0 20px 60px #000a13cc; text-align:center; }.release-confirm-card .fish-visual { position:relative; display:block; left:auto !important; top:auto !important; width:66px; height:44px; margin:0 auto 8px; animation:fish-swim 5s ease-in-out infinite alternate; }.release-confirm-card h2 { margin:3px 0 9px; font-size:1.35rem; line-height:1.35; }.release-confirm-card p:not(.eyebrow) { margin:0; color:#bdd4d4; font-size:.86rem; line-height:1.55; }.release-confirm-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:20px; }.release-confirm-actions .primary-button, .release-confirm-actions .secondary-button { min-width:0; padding-inline:8px; }
 
-/* 第二海域「浅瀬」。水槽では枠内に、海図とタイピングでは画面全体に海を敷く。 */
+/* 第二海域「浅瀬」。水槽では枠内に、海図とタイピングでは画面下端から海を立ち上げる。 */
 .app-shell { position:relative; isolation:isolate; min-height:100vh; }
 body:has(.region-backdrop-shallows) {
   background:radial-gradient(circle at 50% 45%, #0d6374 0%, #0a4158 48rem, #05283b 76rem);
@@ -51,18 +51,18 @@ body:has(.region-backdrop-shallows) {
   content:"";
   position:fixed;
   z-index:-1;
-  top:52%;
-  left:50%;
-  width:1120px;
-  height:1120px;
-  transform:translate(-50%, -50%);
+  right:0;
+  bottom:-1px;
+  left:0;
+  width:100%;
+  height:clamp(360px, 42.9vw, 820px);
   background-color:#0a596f;
-  background-image:linear-gradient(180deg, #0a5d6b14 0%, #063a4b40 100%), url("/backgrounds/shallows-backdrop.png");
-  background-position:center;
+  background-image:url("/backgrounds/shallows.png");
+  background-position:center bottom;
   background-size:cover;
   image-rendering:pixelated;
-  -webkit-mask-image:radial-gradient(circle closest-side at center, #000 0 62%, #000e 76%, transparent 100%);
-  mask-image:radial-gradient(circle closest-side at center, #000 0 62%, #000e 76%, transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #0003 18%, #000b 42%, #000 62%, #000 100%);
+  mask-image:linear-gradient(to bottom, transparent 0%, #0003 18%, #000b 42%, #000 62%, #000 100%);
   pointer-events:none;
 }
 .region-backdrop-shallows .brand, .region-backdrop-shallows .text-button, .region-backdrop-shallows .icon-button {
@@ -131,11 +131,6 @@ body:has(.region-backdrop-shallows) {
 .region-coral-forest .stage-card:nth-child(3n + 2) { background:linear-gradient(105deg, #1c2438, #173040); }
 
 @media (max-width: 560px) {
-  .app-shell.region-backdrop-shallows::before {
-    top:44%;
-    width:680px;
-    height:680px;
-  }
   .input-guide { max-width:100%; font-size:clamp(1.05rem, 5.2vw, 1.4rem); letter-spacing:.04em; }
   .keyboard-guide { padding-inline:7px; }
   .key-row { gap:2px; }
