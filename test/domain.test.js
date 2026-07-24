@@ -4,7 +4,7 @@ import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, summarizePlay, updateConceptSkills, updateSkills } from "../src/domain/learning.js";
 import { chooseProblems, getProblemsForStage } from "../src/domain/problems.js";
 import { createSave, loadSave } from "../src/domain/save.js";
-import { FISH_SPECIES, fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, releaseFish } from "../src/domain/fish.js";
+import { AQUARIUM_VISIBLE_FISH_LIMIT, FISH_SPECIES, fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, releaseFish, selectAquariumFish } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 import { createGameState, gameReducer } from "../src/game/state/gameReducer.js";
 
@@ -192,6 +192,30 @@ test("fish discovery counts only species found in the selected sea", () => {
   assert.equal(discovery.total, 2);
   assert.equal(discovery.discovered, 1);
   assert.deepEqual(fishCountsBySpecies([first]), { "tide-goby": 1 });
+});
+
+test("the aquarium shows up to 24 fish and prioritizes species variety over recency", () => {
+  const caughtFish = [
+    ...Array.from({ length: 25 }, (_, index) => ({ id: `goby-${index}`, speciesId: "tide-goby" })),
+    { id: "shrimp-old", speciesId: "tide-shrimp" },
+    ...Array.from({ length: 5 }, (_, index) => ({ id: `goby-new-${index}`, speciesId: "tide-goby" })),
+  ];
+  const visible = selectAquariumFish(caughtFish);
+  assert.equal(AQUARIUM_VISIBLE_FISH_LIMIT, 24);
+  assert.equal(visible.length, 24);
+  assert.equal(visible.some((fish) => fish.id === "shrimp-old"), true);
+  assert.equal(visible.at(-1).id, "goby-new-4");
+});
+
+test("aquarium selection keeps the newest individual when species exceed the limit", () => {
+  const caughtFish = Array.from({ length: 26 }, (_, index) => ({
+    id: `fish-${index}`,
+    speciesId: `species-${index}`,
+  }));
+  assert.deepEqual(
+    selectAquariumFish(caughtFish, 3).map((fish) => fish.id),
+    ["fish-23", "fish-24", "fish-25"],
+  );
 });
 
 test("releasing a fish removes only its tank instance and keeps its species discovery", () => {

@@ -2,7 +2,17 @@ import { useEffect, useReducer } from "react";
 import { STAGES, getStage } from "../../domain/curriculum.js";
 import { ITEMS, getItem } from "../../domain/economy.js";
 import { getFingerGuide } from "../../domain/fingers.js";
-import { fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, fishSpeciesForRegion, getFishSpecies } from "../../domain/fish.js";
+import {
+  AQUARIUM_COMPACT_VISIBLE_FISH_LIMIT,
+  AQUARIUM_VISIBLE_FISH_LIMIT,
+  fishCollectionStats,
+  fishCountsBySpecies,
+  fishDiscovery,
+  fishForCatch,
+  fishSpeciesForRegion,
+  getFishSpecies,
+  selectAquariumFish,
+} from "../../domain/fish.js";
 import { learningConceptLabel, reviewConceptsForStage, reviewKeysForStage } from "../../domain/learning.js";
 import { getPracticeKeysForStage } from "../../domain/problems.js";
 import { getRegion, getRegionForStage, getUnlockedRegions } from "../../domain/regions.js";
@@ -16,6 +26,24 @@ const KEY_ROWS = [
   ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
   ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"],
 ];
+
+const AQUARIUM_SLOT_ORDER = [
+  7, 16, 3, 20, 11, 12, 23, 0, 18, 5, 14, 9,
+  21, 2, 17, 6, 22, 10, 13, 4, 19, 1, 15, 8,
+];
+
+function aquariumPosition(index) {
+  const slot = AQUARIUM_SLOT_ORDER[index % AQUARIUM_SLOT_ORDER.length];
+  return {
+    left: `${4 + (slot % 6) * 15.8}%`,
+    top: `${8 + Math.floor(slot / 6) * 21}%`,
+  };
+}
+
+function stableFishNumber(caughtFish) {
+  const value = caughtFish?.id ?? caughtFish?.speciesId ?? "";
+  return [...value].reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 0);
+}
 
 export default function GameShell() {
   const [state, dispatch] = useReducer(gameReducer, undefined, () => createGameState(loadSave()));
@@ -161,7 +189,7 @@ function MapScreen({ state, dispatch, isDev }) {
         <p><UiText>{region.description}</UiText></p>
       </div>
       <div className="aquarium-feature">
-        <AquariumPreview fish={tankFish} emptyMessage="海へ出ると、魚に出会えるよ。" />
+        <AquariumPreview fish={tankFish} emptyMessage="海へ出ると、魚に出会えるよ。" compact />
         <button className="aquarium-attached-button" onClick={() => dispatch({ type: "SHOW_AQUARIUM", regionId: region.id })}>
           <UiIcon name="aquarium" />
           <strong><UiText>水槽をみる</UiText></strong>
@@ -203,19 +231,36 @@ function MapScreen({ state, dispatch, isDev }) {
   </section>;
 }
 
-function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNew = false }) {
+function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNew = false, facing, position: requestedPosition }) {
   const species = getFishSpecies(caughtFish?.speciesId);
-  const position = { left: `${9 + ((index * 19) % 76)}%`, top: `${20 + ((index * 23) % 54)}%` };
+  const position = requestedPosition ?? { left: `${9 + ((index * 19) % 76)}%`, top: `${20 + ((index * 23) % 54)}%` };
+  const sourceFacing = species.sprite?.sourceFacing ?? "right";
+  const motionSeed = stableFishNumber(caughtFish);
+  const motionStyle = facing ? {
+    "--swim-duration": `${4.2 + (motionSeed % 28) / 10}s`,
+    "--swim-delay": `${-((motionSeed % 37) / 10)}s`,
+    "--swim-x": `${(facing === "left" ? -1 : 1) * (8 + (motionSeed % 10))}px`,
+    "--swim-y": `${-(4 + (motionSeed % 7))}px`,
+  } : {};
   const spriteStyle = species.sprite ? {
     "--sprite-image": `url("${species.sprite.src}")`,
     "--sprite-duration": `${species.sprite.frames * species.sprite.frameMs}ms`,
   } : {};
-  return <span className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}>{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
+  const flipped = facing && facing !== sourceFacing;
+  return <span className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${flipped ? "is-flipped" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...spriteStyle, ...motionStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
 }
 
-function AquariumPreview({ fish = [], emptyMessage }) {
-  const visibleFish = fish.slice(-8);
-  return <div className="aquarium-preview" aria-label={`水槽。つかまえた魚 ${fish.length} 匹`}><div className="water-shine" />{visibleFish.length > 0 ? visibleFish.map((caughtFish, index) => <FishVisual key={caughtFish.id} caughtFish={caughtFish} index={index} />) : <p><span><UiText>{emptyMessage}</UiText></span></p>}<span className="aquarium-sand" /></div>;
+function AquariumPreview({ fish = [], emptyMessage, compact = false }) {
+  const limit = compact ? AQUARIUM_COMPACT_VISIBLE_FISH_LIMIT : AQUARIUM_VISIBLE_FISH_LIMIT;
+  const visibleFish = selectAquariumFish(fish, limit);
+  const ariaLabel = visibleFish.length < fish.length
+    ? `水槽。${fish.length} 匹のうち ${visibleFish.length} 匹を表示`
+    : `水槽。つかまえた魚 ${fish.length} 匹`;
+  return <div className="aquarium-preview" aria-label={ariaLabel}><div className="water-shine" />{visibleFish.length > 0 ? visibleFish.map((caughtFish, index) => <FishVisual key={caughtFish.id} caughtFish={caughtFish} index={index} facing={index % 2 === 0 ? "right" : "left"} position={aquariumPosition(index)} />) : <p><span><UiText>{emptyMessage}</UiText></span></p>}<span className="aquarium-sand" /></div>;
+}
+
+function UnknownFishVisual() {
+  return <span className="unknown-fish-visual" role="img" aria-label="まだ会っていない魚"><img src="/sprites/unknown-fish.png" alt="" /></span>;
 }
 
 function StageMedals({ medals = {}, onlyEarned = false }) {
@@ -346,13 +391,14 @@ function AquariumScreen({ state, dispatch }) {
     <div className="collection-heading"><div><p className="eyebrow"><UiText>水槽にいる魚</UiText></p><h2><UiText>{tankFish.length} 匹</UiText></h2></div></div>
     <div className="tank-fish-list">{tankFish.length === 0 ? <p className="empty-collection"><UiText>この水槽は、いまは静かだよ。</UiText></p> : tankFish.slice().reverse().map((fish) => {
       const item = getFishSpecies(fish.speciesId);
-      return <article className="tank-fish-card" key={fish.id}><FishVisual caughtFish={fish} /><div><h3><UiText>{item.name}</UiText></h3><p><UiText>{item.habitat}で出会った</UiText></p></div><button className="release-button" onClick={() => dispatch({ type: "REQUEST_RELEASE", fishId: fish.id })}><UiText>海へ逃がす</UiText></button></article>;
+      const sameSpeciesCount = counts[fish.speciesId] ?? 1;
+      return <article className="tank-fish-card" key={fish.id}><FishVisual caughtFish={fish} /><div><h3><UiText>{item.name}</UiText></h3><p><UiText>{item.habitat}で出会った</UiText></p></div><button className="release-button" onClick={() => dispatch({ type: "REQUEST_RELEASE", fishId: fish.id })}><UiText>{sameSpeciesCount > 1 ? "1匹を海へ逃がす" : "海へ逃がす"}</UiText></button></article>;
     })}</div>
     <div className="collection-heading fish-book-heading"><div><p className="eyebrow"><UiText>海のずかん</UiText></p><h2><UiText>出会った魚</UiText> {discovery.discovered} / {discovery.total}</h2></div></div>
     <div className="fish-collection">{species.map((item) => {
       const count = counts[item.id] ?? 0;
       const discovered = state.save.discoveredFishSpeciesIds.includes(item.id);
-      return <article className={`fish-card ${discovered ? "" : "undiscovered"}`} key={item.id}><FishVisual caughtFish={{ speciesId: item.id }} muted={!discovered} /><div><h3><UiText>{discovered ? item.name : "まだ会っていない魚"}</UiText></h3><p><UiText>{discovered ? `水槽に ${count} 匹` : "この海で待っているみたい"}</UiText></p></div></article>;
+      return <article className={`fish-card ${discovered ? "" : "undiscovered"}`} key={item.id}>{discovered ? <FishVisual caughtFish={{ speciesId: item.id }} /> : <UnknownFishVisual />}<div><h3><UiText>{discovered ? item.name : "まだ会っていない魚"}</UiText></h3><p><UiText>{discovered ? (count > 0 ? `水槽に ${count} 匹` : "図鑑に記録されている") : "この海で待っているみたい"}</UiText></p></div></article>;
     })}</div>
   </section>;
 }
@@ -409,5 +455,7 @@ function ReleaseConfirmDialog({ state, dispatch }) {
   const fish = state.save.caughtFish.find((item) => item.id === state.releaseCandidateId);
   if (!fish) return null;
   const species = getFishSpecies(fish.speciesId);
-  return <section className="release-confirm-overlay" role="alertdialog" aria-modal="true" aria-label="魚を海へ逃がす"><div className="release-confirm-card"><FishVisual caughtFish={fish} /><p className="eyebrow"><UiText>海へ逃がす</UiText></p><h2><UiText>{species.name}</UiText>を<br /><UiText>海へ逃がす？</UiText></h2><p><UiText>水槽からはいなくなるよ。</UiText><br /><UiText>図鑑の記録は残るよ。</UiText></p><div className="release-confirm-actions"><button className="secondary-button" onClick={() => dispatch({ type: "CANCEL_RELEASE" })}>キャンセル</button><button className="primary-button" onClick={() => dispatch({ type: "CONFIRM_RELEASE" })}><UiText>海へ逃がす</UiText></button></div></div></section>;
+  const sameSpeciesCount = state.save.caughtFish.filter((item) => item.speciesId === fish.speciesId).length;
+  const multiple = sameSpeciesCount > 1;
+  return <section className="release-confirm-overlay" role="alertdialog" aria-modal="true" aria-label="魚を海へ逃がす"><div className="release-confirm-card"><FishVisual caughtFish={fish} /><p className="eyebrow"><UiText>海へ逃がす</UiText></p><h2><UiText>{species.name}</UiText>を<br /><UiText>{multiple ? "1匹だけ海へ逃がす？" : "海へ逃がす？"}</UiText></h2><p><UiText>{multiple ? `水槽にいる ${sameSpeciesCount} 匹のうち、1匹だけ海へ帰すよ。` : "水槽からはいなくなるよ。"}</UiText><br /><UiText>図鑑の記録は残るよ。</UiText></p><div className="release-confirm-actions"><button className="secondary-button" onClick={() => dispatch({ type: "CANCEL_RELEASE" })}>キャンセル</button><button className="primary-button" onClick={() => dispatch({ type: "CONFIRM_RELEASE" })}><UiText>{multiple ? "1匹逃がす" : "海へ逃がす"}</UiText></button></div></div></section>;
 }

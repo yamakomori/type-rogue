@@ -214,6 +214,10 @@ export function gameReducer(state, action) {
     case "CONFIRM_RELEASE": {
       const fishId = state.releaseCandidateId;
       if (!fishId) return state;
+      const fish = state.save.caughtFish.find((item) => item.id === fishId);
+      const sameSpeciesCount = fish
+        ? state.save.caughtFish.filter((item) => item.speciesId === fish.speciesId).length
+        : 0;
       return {
         ...state,
         save: releaseFish(state.save, fishId),
@@ -221,7 +225,7 @@ export function gameReducer(state, action) {
           ? { ...state.result, fishReleased: true }
           : state.result,
         releaseCandidateId: null,
-        message: "海へ逃がしたよ。図鑑には残るよ。",
+        message: `${sameSpeciesCount > 1 ? "1匹を" : ""}海へ逃がしたよ。図鑑には残るよ。`,
       };
     }
     case "RESET":
