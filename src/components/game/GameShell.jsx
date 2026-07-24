@@ -51,8 +51,12 @@ export default function GameShell() {
       : state.screen === "wardrobe" ? <WardrobeScreen state={state} dispatch={dispatch} />
       : state.screen === "settings" ? <SettingsScreen state={state} dispatch={dispatch} />
         : <MapScreen state={state} dispatch={dispatch} isDev={import.meta.env.DEV} />;
+  const backdropRegionId = state.screen === "typing" ? state.session?.stage.regionId
+    : state.screen === "map" ? state.selectedMapRegionId
+      : state.screen === "result" ? state.result?.stage.regionId
+        : null;
 
-  return <div className={`app-shell ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}>
+  return <div className={`app-shell ${backdropRegionId ? `region-backdrop-${backdropRegionId}` : ""} ${state.save.settings.reducedMotion ? "reduce-motion" : ""}`}>
     {state.screen !== "intro" && <Header save={state.save} onMap={() => navigation("SHOW_MAP")} onAquarium={() => navigation("SHOW_AQUARIUM")} onWardrobe={() => navigation("SHOW_WARDROBE")} onSettings={() => navigation("SHOW_SETTINGS")} />}
     {content}
     {state.screen === "result" && <RewardOverlay state={state} dispatch={dispatch} />}
