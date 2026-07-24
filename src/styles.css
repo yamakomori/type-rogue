@@ -73,16 +73,16 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 .fish-visual.has-sprite { width:60px; height:60px; }
 .fish-visual.has-sprite.small { width:52px; height:52px; }
 .fish-visual.has-sprite.large { width:64px; height:64px; }
-.fish-sprite { position:absolute; inset:0; background-image:var(--sprite-image); background-repeat:no-repeat; background-size:400% 100%; background-position:0 0; image-rendering:pixelated; animation:fish-sprite-frames var(--sprite-duration, 1s) linear infinite; }
+.fish-sprite { position:absolute; inset:0; background-image:var(--sprite-image); background-repeat:no-repeat; background-size:400% 100%; background-position:0 0; image-rendering:pixelated; animation:fish-sprite-frames var(--sprite-duration, 1s) step-end infinite; }
 .fish-visual.has-sprite .fish-crown { top:1px; right:6px; }
 .fish-card .fish-visual.has-sprite, .tank-fish-card .fish-visual.has-sprite { width:58px; height:58px; }
 .fish-found-item .fish-visual.has-sprite { width:48px; height:48px; }
 .first-catch-card .reward-fish.has-sprite, .fish-reward > .reward-fish.has-sprite { width:80px; height:80px; }
 .release-confirm-card .fish-visual.has-sprite { width:70px; height:70px; }
 @keyframes fish-sprite-frames {
-  0%, 24.99% { background-position-x:0%; }
-  25%, 49.99% { background-position-x:33.333%; }
-  50%, 74.99% { background-position-x:66.667%; }
+  0% { background-position-x:0%; }
+  25% { background-position-x:33.333%; }
+  50% { background-position-x:66.667%; }
   75%, 100% { background-position-x:100%; }
 }
 @media (prefers-reduced-motion: reduce) {
