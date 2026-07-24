@@ -44,24 +44,55 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 
 /* 第二海域「浅瀬」。水槽では枠内に、海図とタイピングでは画面全体に海を敷く。 */
 .app-shell { position:relative; isolation:isolate; min-height:100vh; }
+body:has(.region-backdrop-shallows) {
+  background:radial-gradient(circle at 50% 45%, #0d6374 0%, #0a4158 48rem, #05283b 76rem);
+}
 .app-shell.region-backdrop-shallows::before {
   content:"";
   position:fixed;
   z-index:-1;
-  inset:0;
+  top:52%;
+  left:50%;
+  width:1120px;
+  height:1120px;
+  transform:translate(-50%, -50%);
   background-color:#0a596f;
-  background-image:linear-gradient(180deg, #03283a73 0%, #02192799 100%), url("/backgrounds/shallows.png");
+  background-image:linear-gradient(180deg, #0a5d6b14 0%, #063a4b40 100%), url("/backgrounds/shallows-backdrop.png");
   background-position:center;
   background-size:cover;
   image-rendering:pixelated;
+  -webkit-mask-image:radial-gradient(circle closest-side at center, #000 0 62%, #000e 76%, transparent 100%);
+  mask-image:radial-gradient(circle closest-side at center, #000 0 62%, #000e 76%, transparent 100%);
   pointer-events:none;
 }
+.region-backdrop-shallows .brand, .region-backdrop-shallows .text-button, .region-backdrop-shallows .icon-button {
+  color:#effffb;
+  text-shadow:0 1px 4px #063043;
+}
+.region-backdrop-shallows .coin { border-color:#5ca6a5; background:#0c5261d9; color:#fff0ac; }
+.region-backdrop-shallows .icon-button { border-color:#5c9ca6; background:#0b4a5aa3; }
 .region-shallows .map-hero {
-  border-color:#4c9699;
-  background:linear-gradient(135deg, #06394dc7, #052438ad);
+  border-color:#74bbb7;
+  background:linear-gradient(135deg, #0b6070d4, #0a4055c7);
   box-shadow:0 14px 34px #01182266;
 }
 .region-shallows .screen-heading { border-color:#397f83; background:linear-gradient(135deg, #0d4b56, #082c43); }
+.region-shallows .map-hero p:not(.eyebrow) { color:#d1eeea; }
+.region-shallows .map-hero .primary-button { background:#168492; box-shadow:0 3px 0 #0a5d68; }
+.region-shallows .map-lead { color:#c5efe8; text-shadow:0 1px 4px #063043; }
+.region-shallows .stage-card {
+  border-color:#4f8995;
+  background:linear-gradient(105deg, #0c4357e8, #0a354ae8);
+  box-shadow:0 8px 22px #0323344f;
+}
+.region-shallows .stage-card.current { border-color:#80d5cf; box-shadow:0 8px 24px #0b718073; }
+.region-shallows .stage-card:nth-child(3n + 2) { background:linear-gradient(105deg, #105064e8, #0b3b50e8); }
+.region-shallows .stage-number { color:#8ce4dc; }
+.region-shallows .stage-card p { color:#c1dddd; }
+.region-shallows .stage-card small { color:#a9cbca; }
+.region-shallows .stage-card .secondary-button { border-color:#68aeb1; background:#105064; color:#e7fffb; }
+.region-shallows .map-region-tab { border-color:#57939e; background:#0b4254d9; color:#d2eeea; }
+.region-shallows .map-region-tab.selected { border-color:#8adbd3; background:#147381; color:#fff; }
 .region-shallows .aquarium-preview {
   border-color:#72c8bd;
   background-color:#0a596f;
@@ -75,11 +106,16 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 .region-shallows .water-shine { opacity:.18; }
 .region-shallows .aquarium-sand { display:none; }
 .region-shallows .sea-typing-stage {
-  border-color:#4ca0a1;
-  background-color:#063348;
-  background-image:linear-gradient(180deg, #063348b8 0%, #03283ad9 100%);
+  border-color:#6eb9b7;
+  background-color:#0a5264;
+  background-image:linear-gradient(180deg, #0c5b6ab8 0%, #073e52d4 100%);
   box-shadow:0 14px 34px #01182266;
 }
+.region-shallows .sea-typing-stage .problem-title { color:#c9efea; }
+.region-shallows .keyboard-guide { border-color:#5b9da5; background:#0b4358e8; box-shadow:0 10px 26px #02233355; }
+.region-shallows .keycap { border-color:#5993a0; background:#10536a; color:#e2f3ef; }
+.region-shallows .keycap.expected { border-color:#e0b557; background:#896421; color:#fff4c8; }
+.region-shallows .speech-bubble { border-color:#5c9e9f; background:#0d4c5ee8; color:#e0f3ee; }
 .region-shallows .fishing-progress .fishing-line { background:linear-gradient(#e4fff2, #e2c66f); }
 
 /* 第三海域「珊瑚の森」。暖色の珊瑚と木漏れ日のような光で浅瀬と区別する。 */
@@ -95,6 +131,11 @@ body { background:radial-gradient(circle at 72% -16%, #0f4160 0, transparent 34r
 .region-coral-forest .stage-card:nth-child(3n + 2) { background:linear-gradient(105deg, #1c2438, #173040); }
 
 @media (max-width: 560px) {
+  .app-shell.region-backdrop-shallows::before {
+    top:44%;
+    width:680px;
+    height:680px;
+  }
   .input-guide { max-width:100%; font-size:clamp(1.05rem, 5.2vw, 1.4rem); letter-spacing:.04em; }
   .keyboard-guide { padding-inline:7px; }
   .key-row { gap:2px; }
