@@ -90,6 +90,19 @@ for (const fish of FISH_SPECIES) {
   }
 }
 
+// 各海域は「通常10種＋レア2種＝12種」で構成する。
+for (const region of REGIONS) {
+  const regionFish = FISH_SPECIES.filter((fish) => fish.regionId === region.id);
+  const rareCount = regionFish.filter((fish) => fish.rarity === "rare").length;
+  if (regionFish.length !== 12) errors.push(`海域の魚種数が12種でない: ${region.id} → ${regionFish.length}種`);
+  if (rareCount !== 2) errors.push(`海域のレア魚が2種でない: ${region.id} → ${rareCount}種`);
+  // 通常魚はすべてのステージへ最低1種割り当てる（捕獲サイクルの穴を防ぐ）。
+  for (const stageId of region.stageIds) {
+    const hasNormal = regionFish.some((fish) => fish.rarity !== "rare" && fish.stages.includes(stageId));
+    if (!hasNormal) errors.push(`通常魚が割り当てられていないステージ: ${stageId}`);
+  }
+}
+
 for (const problem of PROBLEMS) {
   if (ids.has(problem.id)) errors.push(`問題IDが重複: ${problem.id}`);
   ids.add(problem.id);

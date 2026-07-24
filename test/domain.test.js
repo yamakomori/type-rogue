@@ -4,7 +4,7 @@ import { purchase } from "../src/domain/economy.js";
 import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, summarizePlay, updateConceptSkills, updateSkills } from "../src/domain/learning.js";
 import { chooseProblems, getProblemsForStage } from "../src/domain/problems.js";
 import { createSave, loadSave } from "../src/domain/save.js";
-import { AQUARIUM_VISIBLE_FISH_LIMIT, FISH_SPECIES, fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, releaseFish, selectAquariumFish } from "../src/domain/fish.js";
+import { AQUARIUM_VISIBLE_FISH_LIMIT, FISH_SPECIES, fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, isRegionCleared, RARE_PITY_THRESHOLD, rareChanceForStage, rareFishForRegion, releaseFish, rollRareCatch, selectAquariumFish } from "../src/domain/fish.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 import { createGameState, gameReducer } from "../src/game/state/gameReducer.js";
 
@@ -340,4 +340,74 @@ test("finishing S08 unlocks a six-problem shallows lesson and catches a shallows
   state = completeTypingPlay(state);
   assert.equal(state.result.caughtFish.regionId, "shallows");
   assert.ok(Object.values(state.save.conceptSkills).some((skill) => skill.exposures > 0));
+});
+
+const CLEARED_TIDEPOOL = { S00: 1, S01: 2, S02: 2, S03: 3, S04: 2, S05: 2, S06: 3, S07: 2, S08: 2 };
+
+test("each region has twelve species: ten common and two rare", () => {
+  for (const regionId of ["tidepool", "shallows", "coral-forest"]) {
+    const regionFish = FISH_SPECIES.filter((fish) => fish.regionId === regionId);
+    assert.equal(regionFish.length, 12, regionId);
+    assert.equal(rareFishForRegion(regionId).length, 2, regionId);
+  }
+});
+
+test("a region counts as cleared only when every stage meets its play threshold", () => {
+  assert.equal(isRegionCleared("tidepool", CLEARED_TIDEPOOL), true);
+  assert.equal(isRegionCleared("tidepool", { ...CLEARED_TIDEPOOL, S08: 1 }), false);
+  assert.equal(isRegionCleared("tidepool", {}), false);
+});
+
+test("rare fish never appear before a region is cleared", () => {
+  const catches = Array.from({ length: 50 }, (_, index) =>
+    fishForCatch({ stageId: "S08", playCount: index + 1, rng: () => 0 }));
+  assert.ok(catches.every((fish) => getFishSpecies(fish.speciesId).rarity !== "rare"));
+});
+
+test("rare chance rises with stage difficulty inside a region", () => {
+  assert.ok(rareChanceForStage("S08") > rareChanceForStage("S00"));
+  assert.ok(rareChanceForStage("CO06") > rareChanceForStage("CO01"));
+});
+
+test("a cleared region can yield a rare when the roll succeeds", () => {
+  const rare = rollRareCatch({ stageId: "S08", stagePlayCounts: CLEARED_TIDEPOOL, rng: () => 0 });
+  assert.ok(rare && rare.rarity === "rare" && rare.regionId === "tidepool");
+  const missed = rollRareCatch({ stageId: "S08", stagePlayCounts: CLEARED_TIDEPOOL, rng: () => 0.999 });
+  assert.equal(missed, null);
+});
+
+test("the pity threshold guarantees a rare even when the roll fails", () => {
+  const forced = rollRareCatch({
+    stageId: "S00",
+    stagePlayCounts: CLEARED_TIDEPOOL,
+    rareDrySpell: RARE_PITY_THRESHOLD,
+    rng: () => 0.999,
+  });
+  assert.ok(forced && forced.rarity === "rare");
+});
+
+test("rare rolls prefer an undiscovered rare species", () => {
+  const [firstRare, secondRare] = rareFishForRegion("tidepool");
+  const rare = rollRareCatch({
+    stageId: "S08",
+    stagePlayCounts: CLEARED_TIDEPOOL,
+    discoveredFishSpeciesIds: [firstRare.id],
+    rng: () => 0,
+  });
+  assert.equal(rare.id, secondRare.id);
+});
+
+test("replaying a cleared region tracks the rare dry spell and resets on a rare", () => {
+  const base = {
+    ...createSave(),
+    hasSeenIntro: true,
+    currentStageId: "S08",
+    unlockedStageIds: ["S08"],
+    stagePlayCounts: CLEARED_TIDEPOOL,
+  };
+  let state = gameReducer(createGameState(base), { type: "START_STAGE", stageId: "S08" });
+  state = completeTypingPlay(state);
+  // A common catch on a cleared region advances the pity counter.
+  if (!state.result.isRareCatch) assert.equal(state.save.rareDrySpells.tidepool, 1);
+  else assert.equal(state.save.rareDrySpells.tidepool, 0);
 });

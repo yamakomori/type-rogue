@@ -484,8 +484,8 @@ function AquariumPreview({ fish = [], emptyMessage, compact = false, seedSalt = 
   return <div ref={containerRef} className="aquarium-preview" aria-label={ariaLabel}><div className="water-shine" />{visibleFish.length > 0 ? visibleFish.map((caughtFish, index) => <FishVisual key={caughtFish.id} caughtFish={caughtFish} index={index} roaming position={metaRef.current[index].base} nodeRef={(el) => { nodesRef.current[index] = el; }} />) : <p><span><UiText>{emptyMessage}</UiText></span></p>}<span className="aquarium-sand" /></div>;
 }
 
-function UnknownFishVisual() {
-  return <span className="unknown-fish-visual" role="img" aria-label="未発見の生き物"><img src="/sprites/unknown-fish.png" alt="" /></span>;
+function UnknownFishVisual({ rare = false }) {
+  return <span className={`unknown-fish-visual ${rare ? "rare" : ""}`} role="img" aria-label={rare ? "未発見のレアな生き物" : "未発見の生き物"}><img src="/sprites/unknown-fish.png" alt="" />{rare && <span className="unknown-rare-mark" aria-hidden="true">?</span>}</span>;
 }
 
 function StageMedals({ medals = {}, onlyEarned = false }) {
@@ -622,8 +622,9 @@ function AquariumScreen({ state, dispatch }) {
     <div className="fish-collection">{species.map((item) => {
       const count = counts[item.id] ?? 0;
       const discovered = state.save.discoveredFishSpeciesIds.includes(item.id);
+      const rare = item.rarity === "rare";
       const releaseTarget = tankFish.find((fish) => fish.speciesId === item.id);
-      return <article className={`fish-card ${discovered ? "" : "undiscovered"}`} key={item.id}>{discovered ? <FishVisual caughtFish={{ speciesId: item.id }} /> : <UnknownFishVisual />}<div><h3><UiText>{discovered ? item.name : "未発見の生き物"}</UiText></h3><p><UiText>{discovered ? (count > 0 ? `水槽に ${count} 匹` : "図鑑に記録されている") : "この海で待っているみたい"}</UiText></p>{count > 0 && releaseTarget && <button className="release-button" onClick={() => dispatch({ type: "REQUEST_RELEASE", fishId: releaseTarget.id })}><UiText>{count > 1 ? "1匹を海へ逃がす" : "海へ逃がす"}</UiText></button>}</div></article>;
+      return <article className={`fish-card ${discovered ? "" : "undiscovered"} ${rare ? "rare" : ""}`} key={item.id}>{rare && <span className="rare-ribbon"><UiText>レア</UiText></span>}{discovered ? <FishVisual caughtFish={{ speciesId: item.id }} /> : <UnknownFishVisual rare={rare} />}<div><h3><UiText>{discovered ? item.name : rare ? "レアな生き物" : "未発見の生き物"}</UiText></h3><p><UiText>{discovered ? (count > 0 ? `水槽に ${count} 匹` : "図鑑に記録されている") : rare ? "この海をきわめると 出会えるかも" : "この海で待っているみたい"}</UiText></p>{count > 0 && releaseTarget && <button className="release-button" onClick={() => dispatch({ type: "REQUEST_RELEASE", fishId: releaseTarget.id })}><UiText>{count > 1 ? "1匹を海へ逃がす" : "海へ逃がす"}</UiText></button>}</div></article>;
     })}</div>
   </section>;
 }
@@ -661,11 +662,12 @@ function RewardOverlay({ state, dispatch }) {
       </div>
     </section>;
   }
-  return <section className="reward-overlay" role="dialog" aria-modal="true" aria-label="つれた魚">
-    <div className="reward-card fish-reward">
+  return <section className="reward-overlay" role="dialog" aria-modal="true" aria-label={state.result.isRareCatch ? "レアな生き物がつれた" : "つれた魚"}>
+    <div className={`reward-card fish-reward ${state.result.isRareCatch ? "rare" : ""}`}>
+      {state.result.isRareCatch && <p className="eyebrow rare-eyebrow"><UiText>レアな生き物！</UiText></p>}
       <FishVisual caughtFish={state.result.caughtFish} className="reward-fish" isNew={state.result.isNewSpecies} />
       <h1><UiText>{fish.name}</UiText>が<br />つれた！</h1>
-      <p className="result-message"><UiText>{state.result.accuracy >= 0.85 ? "ていねいに糸をたぐれたね。" : "最後までつれたね。すてき！"}</UiText></p>
+      <p className="result-message"><UiText>{state.result.isRareCatch ? "きらめく、めずらしい生き物だ！" : state.result.accuracy >= 0.85 ? "ていねいに糸をたぐれたね。" : "最後までつれたね。すてき！"}</UiText></p>
       {(earned.careful || earned.speed || earned.gold) && <div className="new-medals"><span>あたらしいメダル</span><StageMedals medals={earned} onlyEarned /></div>}
       {nextName && <div className="next-route-group"><div><span><UiText>{nextRegionWasJustUnlocked ? "あたらしい海が ひらいた！" : nextStageWasJustUnlocked ? "あたらしい道が ひらいた！" : "次の海へ進めるよ"}</UiText></span><strong><UiText>{nextName}</UiText></strong></div><button className="primary-button route-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.nextStageId })}>すすむ <kbd>N</kbd></button></div>}
       <div className="result-actions">

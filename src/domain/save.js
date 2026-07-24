@@ -68,6 +68,7 @@ export function createSave() {
     caughtFish: [],
     discoveredFishSpeciesIds: [],
     releasedFishCounts: {},
+    rareDrySpells: {},
     hasSeenIntro: false,
     skills: {},
     conceptSkills: {},
@@ -92,6 +93,7 @@ export function loadSave(storage = localStorage) {
       ...migrated,
       discoveredFishSpeciesIds: migrated.discoveredFishSpeciesIds ?? [...new Set((migrated.caughtFish ?? []).map((fish) => fish.speciesId))],
       releasedFishCounts: { ...defaults.releasedFishCounts, ...migrated.releasedFishCounts },
+      rareDrySpells: { ...defaults.rareDrySpells, ...migrated.rareDrySpells },
       conceptSkills: { ...defaults.conceptSkills, ...migrated.conceptSkills },
       settings: { ...defaults.settings, ...migrated.settings },
     };

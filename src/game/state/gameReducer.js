@@ -3,7 +3,7 @@ import { chooseProblems, getPracticeKeysForStage } from "../../domain/problems.j
 import { equip, getItem, purchase, rewardForPlay, rewardForProblem } from "../../domain/economy.js";
 import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, stageAccuracy, summarizePlay, updateConceptSkills, updateSkills } from "../../domain/learning.js";
 import { createSave } from "../../domain/save.js";
-import { fishForCatch, releaseFish } from "../../domain/fish.js";
+import { fishForCatch, getFishSpecies, isRegionCleared, releaseFish } from "../../domain/fish.js";
 import { getRegionForStage } from "../../domain/regions.js";
 import { completedAttempt, startAttempt, submitKey } from "../../domain/session.js";
 
@@ -96,11 +96,21 @@ function finishPlay(state) {
     state.session.stage.medalCriteria,
     playSummary,
   );
+  // レア抽選は「このプレイ以前」の記録で海域クリアを判定する（クリア済み海域の再プレイでのみ出現）。
+  const regionId = getRegionForStage(stageId).id;
+  const regionAlreadyCleared = isRegionCleared(regionId, state.save.stagePlayCounts);
+  const rareDrySpell = state.save.rareDrySpells?.[regionId] ?? 0;
   const caughtFish = fishForCatch({
     stageId,
     playCount,
     medals: medalAward.medals,
+    stagePlayCounts: state.save.stagePlayCounts,
+    discoveredFishSpeciesIds: state.save.discoveredFishSpeciesIds,
+    rareDrySpell,
   });
+  const caughtRare = getFishSpecies(caughtFish.speciesId).rarity === "rare";
+  // 救済カウンタ: クリア済み海域でレアが出なければ加算、出たら0に戻す。
+  const nextRareDrySpell = caughtRare ? 0 : regionAlreadyCleared ? rareDrySpell + 1 : rareDrySpell;
   const save = {
     ...state.save,
     coins: state.save.coins + bonus.coins,
@@ -109,6 +119,7 @@ function finishPlay(state) {
     stagePlayCounts: { ...state.save.stagePlayCounts, [stageId]: playCount },
     stageMedals: { ...state.save.stageMedals, [stageId]: medalAward.medals },
     caughtFish: [...state.save.caughtFish, caughtFish],
+    rareDrySpells: { ...state.save.rareDrySpells, [regionId]: nextRareDrySpell },
     discoveredFishSpeciesIds: [...new Set([...state.save.discoveredFishSpeciesIds, caughtFish.speciesId])],
     unlockedStageIds: unlockedStageId
       ? [...state.save.unlockedStageIds, unlockedStageId]
@@ -137,6 +148,7 @@ function finishPlay(state) {
       caughtFish,
       firstCatch: state.save.caughtFish.length === 0,
       isNewSpecies: !state.save.discoveredFishSpeciesIds.includes(caughtFish.speciesId),
+      isRareCatch: caughtRare,
     },
   };
 }
