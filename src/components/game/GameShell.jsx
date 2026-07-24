@@ -254,7 +254,7 @@ function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNe
     "--sprite-image": `url("${species.sprite.src}")`,
     "--sprite-duration": `${species.sprite.frames * species.sprite.frameMs}ms`,
   } : {};
-  return <span ref={nodeRef} className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${roaming ? "roaming" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, "--fish-scale": species.scale ?? 1, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
+  return <span ref={nodeRef} className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${roaming ? "roaming" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, "--fish-scale": species.scale ?? 1, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{isNew && <span className="new-fish-badge">NEW</span>}</span>;
 }
 
 // Deterministic PRNG (mulberry32) so each fish wanders the same way across renders.
@@ -296,6 +296,10 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
         anchored,
         school,
         center: null,
+        // React keeps the element at this base left/top; the animation only translates from here.
+        baseX: x, baseY: y,
+        // Cache the node size once so the per-frame loop never reads layout.
+        w: node?.offsetWidth ?? 52, h: node?.offsetHeight ?? 34,
         x, y, tx: x, ty: y,
         facing: random() < 0.5 ? 1 : -1,
         // Schooling fish swim a touch faster so they can keep up with the shoal.
@@ -313,12 +317,14 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
       };
     });
 
+    // Cache the tank size; refreshed at the top of frame() so per-frame writes never force a layout read.
+    let cw = container.clientWidth || 1;
+    let ch = container.clientHeight || 1;
+
     const boundsFor = (entity) => {
-      const width = container.clientWidth || 1;
-      const height = container.clientHeight || 1;
       const scale = entity.scale ?? 1;   // bigger fish reserve more room so they never clip the frame
-      const wPct = (((entity.node?.offsetWidth ?? 52) * scale) / width) * 100;
-      const hPct = (((entity.node?.offsetHeight ?? 34) * scale) / height) * 100;
+      const wPct = (((entity.w ?? 52) * scale) / cw) * 100;
+      const hPct = (((entity.h ?? 34) * scale) / ch) * 100;
       const xMin = 1.5;
       const xMax = Math.max(xMin, 98.5 - wPct);
       // Anchored burrow-dwellers may sink their tail into the sand, so they can sit lower than swimmers.
@@ -331,10 +337,17 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
 
     const clamp = (value, lo, hi) => Math.min(hi, Math.max(lo, value));
 
+    // Move with a compositor-only transform (translate + scale) instead of left/top, so many fish
+    // never trigger layout. We translate by the delta from the React-owned base position.
+    const applyTransform = (fish, xPct, yPct) => {
+      const dx = ((xPct - fish.baseX) / 100) * cw;
+      const dy = ((yPct - fish.baseY) / 100) * ch;
+      fish.node.style.transform = `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0) scale(${fish.scale})`;
+    };
+
     const place = (fish) => {
       if (fish.node) {
-        fish.node.style.left = `${fish.x}%`;
-        fish.node.style.top = `${fish.y}%`;
+        applyTransform(fish, fish.x, fish.y);
         fish.node.classList.toggle("is-flipped", (fish.facing === -1 ? "left" : "right") !== fish.sourceFacing);
       }
     };
@@ -426,6 +439,9 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
     const frame = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      // Refresh the cached tank size once (handles container resize) before any writes.
+      cw = container.clientWidth || cw;
+      ch = container.clientHeight || ch;
 
       // Move each shoal center first so its members can follow it this frame.
       for (const center of schools.values()) {
@@ -441,8 +457,7 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
           const t = now / 1000;
           const swayY = Math.sin(t * fish.bobFreq + fish.phase) * fish.bobAmp;
           const swayX = Math.sin(t * fish.bobFreq * 0.7 + fish.phase) * fish.swayAmp;
-          fish.node.style.left = `${fish.x + swayX}%`;
-          fish.node.style.top = `${fish.y + swayY}%`;
+          applyTransform(fish, fish.x + swayX, fish.y + swayY);
           fish.node.classList.toggle("is-flipped", (fish.facing === -1 ? "left" : "right") !== fish.sourceFacing);
           continue;
         }
@@ -462,8 +477,7 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
           fish.nextRetargetAt = Math.min(fish.nextRetargetAt, now + 200 + fish.random() * 500);
         }
         const bob = Math.sin((now / 1000) * fish.bobFreq + fish.phase) * fish.bobAmp;
-        fish.node.style.left = `${fish.x}%`;
-        fish.node.style.top = `${fish.y + bob}%`;
+        applyTransform(fish, fish.x, fish.y + bob);
         fish.node.classList.toggle("is-flipped", (fish.facing === -1 ? "left" : "right") !== fish.sourceFacing);
       }
       raf = requestAnimationFrame(frame);

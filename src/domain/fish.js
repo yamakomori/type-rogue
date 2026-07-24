@@ -60,7 +60,7 @@ export const FISH_SPECIES = [
   { id: "coral-key-slug", name: "タイプウミウシ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#d05aa0", accent: "#ffe27a", shape: "tall", rarity: "rare", movement: "drift", depth: "bottom" },
 ];
 
-export const AQUARIUM_VISIBLE_FISH_LIMIT = 24;
+export const AQUARIUM_VISIBLE_FISH_LIMIT = 80;
 export const AQUARIUM_COMPACT_VISIBLE_FISH_LIMIT = 12;
 
 export function getFishSpecies(speciesId) {

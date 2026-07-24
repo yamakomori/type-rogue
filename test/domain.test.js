@@ -195,14 +195,14 @@ test("fish discovery counts only species found in the selected sea", () => {
   assert.deepEqual(fishCountsBySpecies([first]), { "tide-goby": 1 });
 });
 
-test("the aquarium shows up to 24 fish and prioritizes species variety over recency", () => {
+test("the aquarium caps visible fish at its limit and prioritizes species variety over recency", () => {
   const caughtFish = [
     ...Array.from({ length: 25 }, (_, index) => ({ id: `goby-${index}`, speciesId: "tide-goby" })),
     { id: "shrimp-old", speciesId: "tide-shrimp" },
     ...Array.from({ length: 5 }, (_, index) => ({ id: `goby-new-${index}`, speciesId: "tide-goby" })),
   ];
-  const visible = selectAquariumFish(caughtFish);
-  assert.equal(AQUARIUM_VISIBLE_FISH_LIMIT, 24);
+  const visible = selectAquariumFish(caughtFish, 24);
+  assert.equal(AQUARIUM_VISIBLE_FISH_LIMIT, 80);
   assert.equal(visible.length, 24);
   assert.equal(visible.some((fish) => fish.id === "shrimp-old"), true);
   assert.equal(visible.at(-1).id, "goby-new-4");
