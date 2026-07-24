@@ -220,12 +220,41 @@ function AquariumPreview({ fish = [], emptyMessage }) {
 
 function StageMedals({ medals = {}, onlyEarned = false }) {
   const definitions = [
-    { key: "careful", label: "て", title: "ていねいさメダル" },
-    { key: "speed", label: "す", title: "スピードメダル" },
-    { key: "gold", label: "★", title: "ゴールドメダル" },
+    { key: "careful", title: "ていねいさメダル", hint: "ミスを すくなく うつ" },
+    { key: "speed", title: "スピードメダル", hint: "すばやく うつ" },
+    { key: "gold", title: "ゴールドメダル", hint: "ふたつとも できる" },
   ];
   const visible = onlyEarned ? definitions.filter((medal) => medals[medal.key]) : definitions;
-  return <div className="stage-medals" aria-label={`ていねいさ: ${medals.careful ? "獲得" : "未獲得"}、スピード: ${medals.speed ? "獲得" : "未獲得"}、ゴールド: ${medals.gold ? "獲得" : "未獲得"}`}>{visible.map((medal) => <span key={medal.key} className={`medal ${medal.key} ${medals[medal.key] ? "earned" : ""}`} title={medal.title}>{medal.label}</span>)}</div>;
+  return <div className="stage-medals" aria-label={`ていねいさ: ${medals.careful ? "獲得" : "未獲得"}、スピード: ${medals.speed ? "獲得" : "未獲得"}、ゴールド: ${medals.gold ? "獲得" : "未獲得"}`}>{visible.map((medal) => {
+    const status = medals[medal.key] ? "獲得済み" : "未獲得";
+    return <span
+      key={medal.key}
+      className="medal-tooltip"
+      data-tooltip={`${medal.title}：${medal.hint}（${status}）`}
+      aria-label={`${medal.title}、${medal.hint}、${status}`}
+      role="img"
+      tabIndex={0}
+    >
+      <span className={`medal ${medal.key} ${medals[medal.key] ? "earned" : ""}`}><MedalPattern type={medal.key} /></span>
+    </span>;
+  })}</div>;
+}
+
+function MedalPattern({ type }) {
+  return <svg className="medal-pattern" viewBox="0 0 16 16" shapeRendering="crispEdges" aria-hidden="true">
+    {type === "speed" && <>
+      <path d="M1 2h10v3H1zM5 7h10v3H5zM1 12h10v2H1z" />
+      <path className="medal-pattern-detail" d="M12 2h3v3h-3zM1 7h2v3H1zM12 12h3v2h-3z" />
+    </>}
+    {type === "careful" && <>
+      <path d="M3 1h7v2H3v2H1V3h2zM10 3h2v2h2v5h-2V5h-2zM1 5h2v7H1zM3 12h5v2H3zM5 5h5v5H5z" />
+      <path className="medal-pattern-detail" d="M6 9h2v2h2v2h2v-2h2V9h2v4h-2v2h-4v-2H8v-2H6z" />
+    </>}
+    {type === "gold" && <>
+      <path d="M1 3h3v3h2V1h4v5h2V3h3v10H1z" />
+      <path className="medal-pattern-detail" d="M3 9h10v2H3zM5 5h2v2H5zM9 5h2v2H9z" />
+    </>}
+  </svg>;
 }
 
 function TypingScreen({ state, dispatch }) {
@@ -250,7 +279,7 @@ function TypingScreen({ state, dispatch }) {
       </div>
       <p className="problem-title"><UiText>{attempt.problem.title}</UiText></p>
       <p className="problem-text" aria-label="入力する文字">{attempt.problem.text}</p>
-      <p className="input-guide" aria-label="ローマ字入力"><span className="typed">{display.typed || "\u00a0"}</span><span className="next">{display.next}</span><span className="rest">{display.rest}</span></p>
+      <p className="input-guide" aria-label="ローマ字入力"><span className="input-guide-typed">{display.typed}</span><span className="input-guide-next">{display.next}</span><span className="input-guide-rest">{display.rest}</span></p>
     </div>
     {state.save.settings.keyboardGuide && <div className="keyboard-section">
       <div className="keyboard-section-label"><span /><UiText>つぎに おす キー</UiText><span /></div>
