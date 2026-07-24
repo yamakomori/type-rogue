@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { STAGES, getStage } from "../../domain/curriculum.js";
 import { ITEMS, getItem } from "../../domain/economy.js";
 import { getFingerGuide } from "../../domain/fingers.js";
@@ -32,11 +32,16 @@ const AQUARIUM_SLOT_ORDER = [
   21, 2, 17, 6, 22, 10, 13, 4, 19, 1, 15, 8,
 ];
 
-function aquariumPosition(index) {
+function aquariumPosition(index, seed = 0) {
   const slot = AQUARIUM_SLOT_ORDER[index % AQUARIUM_SLOT_ORDER.length];
+  const col = slot % 6;
+  const row = Math.floor(slot / 6);
+  // Scatter each fish off the grid lines so the tank doesn't look like a spreadsheet.
+  const jitterX = (seed % 11) - 5;          // -5%..+5%
+  const jitterY = ((seed >> 3) % 13) - 6;   // -6%..+6%
   return {
-    left: `${4 + (slot % 6) * 15.8}%`,
-    top: `${8 + Math.floor(slot / 6) * 21}%`,
+    left: `${4 + col * 15.8 + jitterX}%`,
+    top: `${8 + row * 21 + jitterY}%`,
   };
 }
 
@@ -231,23 +236,140 @@ function MapScreen({ state, dispatch, isDev }) {
   </section>;
 }
 
-function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNew = false, facing, position: requestedPosition }) {
+function FishVisual({ caughtFish, className = "", index = 0, muted = false, isNew = false, position: requestedPosition, roaming = false, nodeRef }) {
   const species = getFishSpecies(caughtFish?.speciesId);
   const position = requestedPosition ?? { left: `${9 + ((index * 19) % 76)}%`, top: `${20 + ((index * 23) % 54)}%` };
-  const sourceFacing = species.sprite?.sourceFacing ?? "right";
-  const motionSeed = stableFishNumber(caughtFish);
-  const motionStyle = facing ? {
-    "--swim-duration": `${4.2 + (motionSeed % 28) / 10}s`,
-    "--swim-delay": `${-((motionSeed % 37) / 10)}s`,
-    "--swim-x": `${(facing === "left" ? -1 : 1) * (8 + (motionSeed % 10))}px`,
-    "--swim-y": `${-(4 + (motionSeed % 7))}px`,
-  } : {};
   const spriteStyle = species.sprite ? {
     "--sprite-image": `url("${species.sprite.src}")`,
     "--sprite-duration": `${species.sprite.frames * species.sprite.frameMs}ms`,
   } : {};
-  const flipped = facing && facing !== sourceFacing;
-  return <span className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${flipped ? "is-flipped" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...spriteStyle, ...motionStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
+  return <span ref={nodeRef} className={`fish-visual ${species.sprite ? "has-sprite" : ""} ${species.shape} ${caughtFish?.size ?? "medium"} ${caughtFish?.variant ?? "common"} movement-${species.movement ?? "cruise"} ${roaming ? "roaming" : ""} ${className} ${muted ? "muted" : ""}`} style={{ "--fish": species.color, "--accent": species.accent, ...spriteStyle, ...position }} aria-label={muted ? "近づいている魚影" : species.name}><span className="fish-art">{species.sprite ? <span className="fish-sprite" aria-hidden="true" /> : <><span className="fish-tail" /><span className="fish-body" /><span className="fish-eye" /></>}</span>{caughtFish?.variant === "gold" && <span className="fish-crown">⌁</span>}{isNew && <span className="new-fish-badge">NEW</span>}</span>;
+}
+
+// Deterministic PRNG (mulberry32) so each fish wanders the same way across renders.
+function makeFishRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Each fish roams to random waypoints inside the tank, clamped to the frame, and
+// only turns to face a new target when it lies clearly to its other side (throttled).
+function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+    const meta = metaRef.current;
+    const nodes = nodesRef.current;
+
+    const fishes = meta.map((info, i) => {
+      const node = nodes[i];
+      const random = makeFishRandom(info.seed || i + 1);
+      const x = parseFloat(info.base.left) || 10;
+      const y = parseFloat(info.base.top) || 20;
+      const slow = info.drift ? 0.55 : 1;
+      return {
+        node,
+        random,
+        sourceFacing: info.sourceFacing,
+        x, y, tx: x, ty: y,
+        facing: random() < 0.5 ? 1 : -1,
+        speed: (1.6 + random() * 2.2) * slow,      // % of tank per second
+        bobAmp: (info.drift ? 1.1 : 0.5) + random() * 0.6,
+        bobFreq: 0.4 + random() * 0.5,
+        phase: random() * Math.PI * 2,
+        nextRetargetAt: 0,
+        lastFlipAt: -1e4,
+      };
+    });
+
+    const boundsFor = (fish) => {
+      const width = container.clientWidth || 1;
+      const height = container.clientHeight || 1;
+      const wPct = ((fish.node?.offsetWidth ?? 52) / width) * 100;
+      const hPct = ((fish.node?.offsetHeight ?? 34) / height) * 100;
+      const xMin = 1.5;
+      const yMin = 4;
+      return { xMin, xMax: Math.max(xMin, 98.5 - wPct), yMin, yMax: Math.max(yMin, 84 - hPct) };
+    };
+
+    const place = (fish) => {
+      if (fish.node) {
+        fish.node.style.left = `${fish.x}%`;
+        fish.node.style.top = `${fish.y}%`;
+        fish.node.classList.toggle("is-flipped", (fish.facing === -1 ? "left" : "right") !== fish.sourceFacing);
+      }
+    };
+
+    const reduce = typeof window !== "undefined" && window.matchMedia
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Clamp the initial scattered position so no fish starts outside the frame.
+    fishes.forEach((fish) => {
+      const { xMin, xMax, yMin, yMax } = boundsFor(fish);
+      fish.x = Math.min(xMax, Math.max(xMin, fish.x));
+      fish.y = Math.min(yMax, Math.max(yMin, fish.y));
+      fish.tx = fish.x;
+      fish.ty = fish.y;
+    });
+
+    if (reduce) {
+      fishes.forEach(place);
+      return undefined;
+    }
+
+    const retarget = (fish, now) => {
+      const { xMin, xMax, yMin, yMax } = boundsFor(fish);
+      fish.tx = xMin + fish.random() * (xMax - xMin);
+      fish.ty = yMin + fish.random() * (yMax - yMin);
+      fish.nextRetargetAt = now + 3200 + fish.random() * 4200;
+      const dx = fish.tx - fish.x;
+      if (Math.abs(dx) > 9) {
+        const desired = dx > 0 ? 1 : -1;
+        if (desired !== fish.facing && now - fish.lastFlipAt > 2600) {
+          fish.facing = desired;
+          fish.lastFlipAt = now;
+        }
+      }
+    };
+
+    let raf = 0;
+    let last = performance.now();
+    fishes.forEach((fish) => {
+      place(fish);
+      fish.nextRetargetAt = last + fish.random() * 1400;
+    });
+
+    const frame = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      for (const fish of fishes) {
+        if (!fish.node) continue;
+        if (now >= fish.nextRetargetAt) retarget(fish, now);
+        const dx = fish.tx - fish.x;
+        const dy = fish.ty - fish.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 0.6) {
+          fish.nextRetargetAt = Math.min(fish.nextRetargetAt, now + 200 + fish.random() * 500);
+        } else {
+          const move = Math.min(dist, fish.speed * dt);
+          fish.x += (dx / dist) * move;
+          fish.y += (dy / dist) * move;
+        }
+        const bob = Math.sin((now / 1000) * fish.bobFreq + fish.phase) * fish.bobAmp;
+        fish.node.style.left = `${fish.x}%`;
+        fish.node.style.top = `${fish.y + bob}%`;
+        fish.node.classList.toggle("is-flipped", (fish.facing === -1 ? "left" : "right") !== fish.sourceFacing);
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [signature]);
 }
 
 function AquariumPreview({ fish = [], emptyMessage, compact = false }) {
@@ -256,7 +378,20 @@ function AquariumPreview({ fish = [], emptyMessage, compact = false }) {
   const ariaLabel = visibleFish.length < fish.length
     ? `水槽。${fish.length} 匹のうち ${visibleFish.length} 匹を表示`
     : `水槽。つかまえた魚 ${fish.length} 匹`;
-  return <div className="aquarium-preview" aria-label={ariaLabel}><div className="water-shine" />{visibleFish.length > 0 ? visibleFish.map((caughtFish, index) => <FishVisual key={caughtFish.id} caughtFish={caughtFish} index={index} facing={index % 2 === 0 ? "right" : "left"} position={aquariumPosition(index)} />) : <p><span><UiText>{emptyMessage}</UiText></span></p>}<span className="aquarium-sand" /></div>;
+  const containerRef = useRef(null);
+  const nodesRef = useRef([]);
+  const metaRef = useRef([]);
+  metaRef.current = visibleFish.map((caughtFish, index) => {
+    const species = getFishSpecies(caughtFish.speciesId);
+    return {
+      seed: stableFishNumber(caughtFish),
+      sourceFacing: species.sprite?.sourceFacing ?? "right",
+      drift: (species.movement ?? "cruise") === "drift",
+      base: aquariumPosition(index, stableFishNumber(caughtFish)),
+    };
+  });
+  useAquariumRoaming(containerRef, nodesRef, metaRef, visibleFish.map((f) => f.id).join(","));
+  return <div ref={containerRef} className="aquarium-preview" aria-label={ariaLabel}><div className="water-shine" />{visibleFish.length > 0 ? visibleFish.map((caughtFish, index) => <FishVisual key={caughtFish.id} caughtFish={caughtFish} index={index} roaming position={metaRef.current[index].base} nodeRef={(el) => { nodesRef.current[index] = el; }} />) : <p><span><UiText>{emptyMessage}</UiText></span></p>}<span className="aquarium-sand" /></div>;
 }
 
 function UnknownFishVisual() {
