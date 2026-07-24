@@ -98,13 +98,17 @@ function finishPlay(state) {
   );
   // レア抽選は「このプレイ以前」の記録で海域クリアを判定する（クリア済み海域の再プレイでのみ出現）。
   const regionId = getRegionForStage(stageId).id;
-  const regionAlreadyCleared = isRegionCleared(regionId, state.save.stagePlayCounts);
+  const regionAlreadyCleared = isRegionCleared(regionId, {
+    stagePlayCounts: state.save.stagePlayCounts,
+    unlockedStageIds: state.save.unlockedStageIds,
+  });
   const rareDrySpell = state.save.rareDrySpells?.[regionId] ?? 0;
   const caughtFish = fishForCatch({
     stageId,
     playCount,
     medals: medalAward.medals,
     stagePlayCounts: state.save.stagePlayCounts,
+    unlockedStageIds: state.save.unlockedStageIds,
     discoveredFishSpeciesIds: state.save.discoveredFishSpeciesIds,
     rareDrySpell,
   });

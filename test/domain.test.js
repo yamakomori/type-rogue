@@ -5,6 +5,7 @@ import { awardStageMedals, reviewConceptsForStage, reviewKeysForStage, summarize
 import { chooseProblems, getProblemsForStage } from "../src/domain/problems.js";
 import { createSave, loadSave } from "../src/domain/save.js";
 import { AQUARIUM_VISIBLE_FISH_LIMIT, FISH_SPECIES, fishCollectionStats, fishCountsBySpecies, fishDiscovery, fishForCatch, getFishSpecies, isRegionCleared, RARE_PITY_THRESHOLD, rareChanceForStage, rareFishForRegion, releaseFish, rollRareCatch, selectAquariumFish } from "../src/domain/fish.js";
+import { getRegion } from "../src/domain/regions.js";
 import { completedAttempt, startAttempt, submitKey } from "../src/domain/session.js";
 import { createGameState, gameReducer } from "../src/game/state/gameReducer.js";
 
@@ -352,10 +353,20 @@ test("each region has twelve species: ten common and two rare", () => {
   }
 });
 
-test("a region counts as cleared only when every stage meets its play threshold", () => {
-  assert.equal(isRegionCleared("tidepool", CLEARED_TIDEPOOL), true);
-  assert.equal(isRegionCleared("tidepool", { ...CLEARED_TIDEPOOL, S08: 1 }), false);
+test("a region counts as cleared once every stage has been cleared at least once", () => {
+  const playedOnce = Object.fromEntries(getRegion("tidepool").stageIds.map((id) => [id, 1]));
+  assert.equal(isRegionCleared("tidepool", { stagePlayCounts: playedOnce }), true);
+  // A single unplayed stage keeps the region uncleared.
+  assert.equal(isRegionCleared("tidepool", { stagePlayCounts: { ...playedOnce, S08: 0 } }), false);
   assert.equal(isRegionCleared("tidepool", {}), false);
+});
+
+test("a region also counts as cleared when the next region is unlocked", () => {
+  // Sparse play counts (e.g. a dev jump or migrated save) but the next region is open.
+  assert.equal(isRegionCleared("tidepool", { stagePlayCounts: {}, unlockedStageIds: ["SH01"] }), true);
+  assert.equal(isRegionCleared("shallows", { stagePlayCounts: {}, unlockedStageIds: ["CO01"] }), true);
+  // The final region has no next region, so it still needs its thresholds met.
+  assert.equal(isRegionCleared("coral-forest", { stagePlayCounts: {}, unlockedStageIds: ["CO06"] }), false);
 });
 
 test("rare fish never appear before a region is cleared", () => {

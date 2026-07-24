@@ -1,4 +1,4 @@
-import { getStage } from "./curriculum.js";
+import { getNextStage, getStage } from "./curriculum.js";
 import { getRegion, getRegionForStage } from "./regions.js";
 
 // 水槽での泳ぎ方・見え方の指定:
@@ -74,10 +74,10 @@ export function fishSpeciesForRegion(regionId) {
 
 // レア出現の調整値。難易度が高いステージほど基礎確率が上がり、
 // メダル獲得で倍率が乗り、一定回数外れると救済で必ず出す。
-export const RARE_MIN_CHANCE = 0.04;
-export const RARE_MAX_CHANCE = 0.18;
+export const RARE_MIN_CHANCE = 0.08;
+export const RARE_MAX_CHANCE = 0.22;
 export const RARE_MEDAL_MULTIPLIER = 1.5;
-export const RARE_PITY_THRESHOLD = 15;
+export const RARE_PITY_THRESHOLD = 8;
 
 export function rareFishForRegion(regionId) {
   return FISH_SPECIES.filter((fish) => fish.regionId === regionId && fish.rarity === "rare");
@@ -87,11 +87,19 @@ export function regionHasRareFish(regionId) {
   return rareFishForRegion(regionId).length > 0;
 }
 
-// その海域の全ステージが、それぞれの解禁しきい値（minCompletedPlays）に到達しているか。
-export function isRegionCleared(regionId, stagePlayCounts = {}) {
+// その海域を「全ステージクリア済み」とみなせるか。
+// 「クリア」はプレイヤーの体感どおり「各ステージを1回以上クリアした」こと。
+// minCompletedPlays は次ステージの解禁に必要な回数であって、そのステージのクリア可否ではない。
+// 判定はどちらかを満たせばよい:
+//   1) 次の海域が解放済み（そこへ進むには、この海域を最後まで進めている必要がある）。
+//      開発中のジャンプや古い/移行セーブで stagePlayCounts が疎でも取りこぼさない。
+//   2) この海域の全ステージを1回以上プレイ済み（＝各ステージを一度はクリアした）。
+export function isRegionCleared(regionId, { stagePlayCounts = {}, unlockedStageIds = [] } = {}) {
   const stageIds = getRegion(regionId).stageIds;
   if (stageIds.length === 0) return false;
-  return stageIds.every((stageId) => (stagePlayCounts[stageId] ?? 0) >= getStage(stageId).minCompletedPlays);
+  const nextStage = getNextStage(stageIds[stageIds.length - 1]);
+  if (nextStage && unlockedStageIds.includes(nextStage.id)) return true;
+  return stageIds.every((stageId) => (stagePlayCounts[stageId] ?? 0) >= 1);
 }
 
 // 海域内でのステージ難易度（出題順）を 0〜1 に正規化し、レアの基礎確率へ写す。
@@ -114,11 +122,11 @@ function pickRareSpecies(regionId, discoveredIds, rng) {
 }
 
 // レア魚を抽選すべきなら、その魚種を返す（そうでなければ null）。
-// stagePlayCounts はこのプレイ「以前」の記録を渡す（クリア済み海域の再プレイでのみ抽選する）。
-export function rollRareCatch({ stageId, medals = {}, stagePlayCounts, discoveredFishSpeciesIds = [], rareDrySpell = 0, rng = Math.random }) {
+// stagePlayCounts / unlockedStageIds はこのプレイ「以前」の記録を渡す（クリア済み海域の再プレイでのみ抽選する）。
+export function rollRareCatch({ stageId, medals = {}, stagePlayCounts, unlockedStageIds = [], discoveredFishSpeciesIds = [], rareDrySpell = 0, rng = Math.random }) {
   const regionId = getRegionForStage(stageId).id;
   if (!regionHasRareFish(regionId)) return null;
-  if (!stagePlayCounts || !isRegionCleared(regionId, stagePlayCounts)) return null;
+  if (!isRegionCleared(regionId, { stagePlayCounts, unlockedStageIds })) return null;
   const forced = rareDrySpell >= RARE_PITY_THRESHOLD;
   const hasMedal = Boolean(medals.gold || medals.speed || medals.careful);
   const chance = rareChanceForStage(stageId) * (hasMedal ? RARE_MEDAL_MULTIPLIER : 1);
@@ -126,8 +134,8 @@ export function rollRareCatch({ stageId, medals = {}, stagePlayCounts, discovere
   return pickRareSpecies(regionId, discoveredFishSpeciesIds, rng);
 }
 
-export function fishForCatch({ stageId, playCount, medals = {}, stagePlayCounts, discoveredFishSpeciesIds = [], rareDrySpell = 0, rng = Math.random }) {
-  const rareSpecies = rollRareCatch({ stageId, medals, stagePlayCounts, discoveredFishSpeciesIds, rareDrySpell, rng });
+export function fishForCatch({ stageId, playCount, medals = {}, stagePlayCounts, unlockedStageIds = [], discoveredFishSpeciesIds = [], rareDrySpell = 0, rng = Math.random }) {
+  const rareSpecies = rollRareCatch({ stageId, medals, stagePlayCounts, unlockedStageIds, discoveredFishSpeciesIds, rareDrySpell, rng });
   const normalCandidates = FISH_SPECIES.filter((fish) => fish.stages.includes(stageId) && fish.rarity !== "rare");
   const species = rareSpecies
     ?? normalCandidates[(Math.max(playCount, 1) - 1) % normalCandidates.length]
