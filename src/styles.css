@@ -3079,14 +3079,19 @@ button:focus-visible {
   font-size: 1rem;
 }
 
-/* 最長のお題（全角12文字）が固定高の箱で折り返さないよう、vw 係数を絞ってある。 */
+/* 全角12文字までは clamp の値をそのまま使う。これは珊瑚の森までの最長に合わせた調整値。
+   海の洞窟以降は文が長くなるので、12文字を超えた分だけ文字数に反比例して縮め、
+   固定高の箱で折り返さないようにする。文字送りが .08em と em 基準なので、
+   font-size を縮めれば1行の必要幅も同じ比率で縮む。 */
 .problem-text {
-  font-size: clamp(2.5rem, 6.4vw, 3.9rem);
+  font-size: calc(clamp(2.5rem, 6.4vw, 3.9rem) * 12 / max(var(--problem-length, 12), 12));
 }
 
+/* ローマ字は24文字までを基準にする（珊瑚の森までの最長）。
+   洞窟以降はそれを超えた分だけ縮めて、固定高の箱で折り返さないようにする。 */
 .input-guide {
   margin-top: 10px;
-  font-size: clamp(1.65rem, 4vw, 2.25rem);
+  font-size: calc(clamp(1.65rem, 4vw, 2.25rem) * 24 / max(var(--guide-length, 24), 24));
 }
 
 .keyboard-section {
@@ -3325,8 +3330,9 @@ button:focus-visible {
     padding-inline: 12px;
   }
 
+  /* 狭い画面は折り返しを許すが、長い文ほど行数が増えるので、ここでも文字数で縮める。 */
   .problem-text {
-    font-size: clamp(2.25rem, 12vw, 3.45rem);
+    font-size: calc(clamp(2.25rem, 12vw, 3.45rem) * 12 / max(var(--problem-length, 12), 12));
   }
 
   .keyboard-section {

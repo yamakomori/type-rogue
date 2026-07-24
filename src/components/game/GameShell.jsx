@@ -557,6 +557,11 @@ function MedalPattern({ type }) {
   </svg>;
 }
 
+// お題1行ぶんの見た目の幅を、全角文字を1として数える。
+function problemDisplayWidth(text) {
+  return [...text].reduce((width, char) => width + (/[\x20-\x7e]/.test(char) ? 0.5 : 1), 0);
+}
+
 function TypingScreen({ state, dispatch }) {
   const { stage, index, problems, attempt, feedback } = state.session;
   const display = attempt.matcher.display();
@@ -574,8 +579,11 @@ function TypingScreen({ state, dispatch }) {
     <div className="typing-stage sea-typing-stage">
       <FishingProgress progress={fishProgress} stageId={stage.id} />
       <p className="problem-title"><UiText>{attempt.problem.title}</UiText></p>
-      <p className="problem-text" aria-label="入力する文字">{attempt.problem.text}</p>
-      <p className="input-guide" aria-label="ローマ字入力"><span className="input-guide-typed">{display.typed}</span><span className="input-guide-next">{display.next}</span><span className="input-guide-rest">{display.rest}</span></p>
+      {/* お題の見た目の幅をCSSへ渡す。長い文ほど自動で小さくなり、固定高の箱で折り返さない。
+          潮だまりの直接入力は半角なので、全角の半分として数える。 */}
+      <p className="problem-text" aria-label="入力する文字" style={{ "--problem-length": problemDisplayWidth(attempt.problem.text) }}>{attempt.problem.text}</p>
+      {/* ガイドも推奨ローマ字の長さで縮める。打っている途中で綴りが変わっても長さは動かさない。 */}
+      <p className="input-guide" aria-label="ローマ字入力" style={{ "--guide-length": attempt.problem.estimatedKeystrokes }}><span className="input-guide-typed">{display.typed}</span><span className="input-guide-next">{display.next}</span><span className="input-guide-rest">{display.rest}</span></p>
     </div>
     {/* 罫線ラベルの位置は進捗表示に譲る。キーボードガイドを隠していても進捗は出したいので、
         ラベル自体はガイドの表示設定によらず常に描く。 */}
