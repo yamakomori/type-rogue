@@ -1,4 +1,5 @@
 import { Children, Fragment } from "react";
+import { splitFuriganaSegments } from "../../domain/furigana.js";
 
 const READING_ENTRIES = [
   ["珊瑚の森", "さんごのもり"],
@@ -306,12 +307,18 @@ function renderString(text, keyPrefix) {
     }
     flushPlain();
     const [base, reading] = match;
-    result.push(
-      <ruby key={`${keyPrefix}-${index}`}>
-        {base}
-        <rt aria-hidden="true">{reading}</rt>
-      </ruby>,
-    );
+    splitFuriganaSegments(base, reading).forEach((segment, segmentIndex) => {
+      if (!segment.reading) {
+        result.push(segment.text);
+        return;
+      }
+      result.push(
+        <ruby key={`${keyPrefix}-${index}-${segmentIndex}`}>
+          {segment.text}
+          <rt aria-hidden="true">{segment.reading}</rt>
+        </ruby>,
+      );
+    });
     index += base.length;
   }
   flushPlain();

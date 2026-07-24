@@ -160,8 +160,8 @@ body:has(.region-backdrop-shallows) {
 /* UI foundation refresh: typography, navigation, surfaces, and shared controls. */
 ruby { ruby-align:center; }
 rt {
-  color:#8ed9d6;
-  font-size:.43em;
+  color:inherit;
+  font-size:.36em;
   font-weight:700;
   letter-spacing:.02em;
   line-height:1;
