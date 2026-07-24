@@ -624,6 +624,7 @@ button:focus-visible {
   padding:0;
 }
 .tank-fish-card p { line-height:1.75; }
+.fish-card .release-button { display:inline-block; margin-top:7px; padding:0; }
 
 .typing-top {
   min-height:48px;

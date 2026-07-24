@@ -260,7 +260,7 @@ function AquariumPreview({ fish = [], emptyMessage, compact = false }) {
 }
 
 function UnknownFishVisual() {
-  return <span className="unknown-fish-visual" role="img" aria-label="まだ会っていない魚"><img src="/sprites/unknown-fish.png" alt="" /></span>;
+  return <span className="unknown-fish-visual" role="img" aria-label="未発見の生き物"><img src="/sprites/unknown-fish.png" alt="" /></span>;
 }
 
 function StageMedals({ medals = {}, onlyEarned = false }) {
@@ -388,17 +388,12 @@ function AquariumScreen({ state, dispatch }) {
       <AquariumPreview fish={tankFish} emptyMessage="まだ魚はいないよ。最初の海へ出かけよう。" />
       <button className="aquarium-depart-button primary-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><strong><UiText>海へ出かける</UiText></strong><UiIcon name="play" /></button>
     </div>
-    <div className="collection-heading"><div><p className="eyebrow"><UiText>水槽にいる魚</UiText></p><h2><UiText>{tankFish.length} 匹</UiText></h2></div></div>
-    <div className="tank-fish-list">{tankFish.length === 0 ? <p className="empty-collection"><UiText>この水槽は、いまは静かだよ。</UiText></p> : tankFish.slice().reverse().map((fish) => {
-      const item = getFishSpecies(fish.speciesId);
-      const sameSpeciesCount = counts[fish.speciesId] ?? 1;
-      return <article className="tank-fish-card" key={fish.id}><FishVisual caughtFish={fish} /><div><h3><UiText>{item.name}</UiText></h3><p><UiText>{item.habitat}で出会った</UiText></p></div><button className="release-button" onClick={() => dispatch({ type: "REQUEST_RELEASE", fishId: fish.id })}><UiText>{sameSpeciesCount > 1 ? "1匹を海へ逃がす" : "海へ逃がす"}</UiText></button></article>;
-    })}</div>
     <div className="collection-heading fish-book-heading"><div><p className="eyebrow"><UiText>海のずかん</UiText></p><h2><UiText>出会った魚</UiText> {discovery.discovered} / {discovery.total}</h2></div></div>
     <div className="fish-collection">{species.map((item) => {
       const count = counts[item.id] ?? 0;
       const discovered = state.save.discoveredFishSpeciesIds.includes(item.id);
-      return <article className={`fish-card ${discovered ? "" : "undiscovered"}`} key={item.id}>{discovered ? <FishVisual caughtFish={{ speciesId: item.id }} /> : <UnknownFishVisual />}<div><h3><UiText>{discovered ? item.name : "まだ会っていない魚"}</UiText></h3><p><UiText>{discovered ? (count > 0 ? `水槽に ${count} 匹` : "図鑑に記録されている") : "この海で待っているみたい"}</UiText></p></div></article>;
+      const releaseTarget = tankFish.find((fish) => fish.speciesId === item.id);
+      return <article className={`fish-card ${discovered ? "" : "undiscovered"}`} key={item.id}>{discovered ? <FishVisual caughtFish={{ speciesId: item.id }} /> : <UnknownFishVisual />}<div><h3><UiText>{discovered ? item.name : "未発見の生き物"}</UiText></h3><p><UiText>{discovered ? (count > 0 ? `水槽に ${count} 匹` : "図鑑に記録されている") : "この海で待っているみたい"}</UiText></p>{count > 0 && releaseTarget && <button className="release-button" onClick={() => dispatch({ type: "REQUEST_RELEASE", fishId: releaseTarget.id })}><UiText>{count > 1 ? "1匹を海へ逃がす" : "海へ逃がす"}</UiText></button>}</div></article>;
     })}</div>
   </section>;
 }
