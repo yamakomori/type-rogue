@@ -173,11 +173,11 @@ test("sprite metadata belongs to the species and is not copied into saved catche
   assert.equal("sprite" in caught, false);
 });
 
-test("the five trial sprite species keep valid four-frame metadata", () => {
+test("the six sprite species keep valid four-frame metadata", () => {
   const spriteSpecies = FISH_SPECIES.filter((species) => species.sprite);
   assert.deepEqual(
     spriteSpecies.map((species) => species.id).sort(),
-    ["coral-butterfly", "deep-lantern", "sand-ray", "shallow-puffer", "shellfish"],
+    ["clownfish", "coral-butterfly", "deep-lantern", "sand-ray", "shallow-puffer", "shellfish"],
   );
   for (const species of spriteSpecies) {
     assert.equal(species.sprite.frames, 4);
