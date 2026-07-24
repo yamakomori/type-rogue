@@ -697,6 +697,24 @@ button:focus-visible {
   position:relative;
   border-radius:8px 8px 28px 8px;
 }
+.fish-reward {
+  padding:30px 28px 24px;
+}
+.fish-reward > .reward-fish {
+  margin-bottom:12px;
+}
+.fish-reward h1 {
+  margin:2px 0 9px;
+}
+.fish-reward .result-message {
+  margin:0 0 17px;
+}
+.fish-reward .new-medals {
+  margin:0 auto 17px;
+}
+.fish-reward .next-route-group {
+  margin:0 0 12px;
+}
 .dialog-close {
   position:absolute;
   top:11px;

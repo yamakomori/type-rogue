@@ -392,15 +392,10 @@ function RewardOverlay({ state, dispatch }) {
   }
   return <section className="reward-overlay" role="dialog" aria-modal="true" aria-label="つれた魚">
     <div className="reward-card fish-reward">
-      <button className="dialog-close" onClick={() => dispatch({ type: "SHOW_MAP" })} aria-label="レッスン一覧にもどる"><UiIcon name="close" size={20} /></button>
-      <div className="result-glow">✦</div>
-      <p className="eyebrow"><UiText>つれた魚</UiText></p>
       <FishVisual caughtFish={state.result.caughtFish} className="reward-fish" isNew={state.result.isNewSpecies} />
       <h1><UiText>{fish.name}</UiText>が<br />つれた！</h1>
-      <div className="found-item fish-found-item"><FishVisual caughtFish={state.result.caughtFish} /><strong><UiText>水槽につれてかえろう</UiText></strong><small><UiText>{fish.habitat}</UiText></small>{state.result.isNewSpecies && <span className="new-fish-badge card-badge">NEW</span>}</div>
-      {!state.result.fishReleased && <button className="text-button release-result-button" onClick={() => dispatch({ type: "REQUEST_RELEASE", fishId: state.result.caughtFish.id })}><UiText>海へ逃がす</UiText></button>}
+      <p className="result-message"><UiText>{state.result.accuracy >= 0.85 ? "ていねいに糸をたぐれたね。" : "最後までつれたね。すてき！"}</UiText></p>
       {(earned.careful || earned.speed || earned.gold) && <div className="new-medals"><span>あたらしいメダル</span><StageMedals medals={earned} onlyEarned /></div>}
-      <p><UiText>{state.result.fishReleased ? "海へ逃がしたよ。図鑑には残るよ。" : state.result.accuracy >= 0.85 ? "ていねいに糸をたぐれたね。" : "最後までつれたね。すてき！"}</UiText></p>
       {nextName && <div className="next-route-group"><div><span><UiText>{nextRegionWasJustUnlocked ? "あたらしい海が ひらいた！" : nextStageWasJustUnlocked ? "あたらしい道が ひらいた！" : "次の海へ進めるよ"}</UiText></span><strong><UiText>{nextName}</UiText></strong></div><button className="primary-button route-button" onClick={() => dispatch({ type: "START_STAGE", stageId: state.result.nextStageId })}>すすむ <kbd>N</kbd></button></div>}
       <div className="result-actions">
         <button className="secondary-button shortcut-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><strong><UiText>レッスン一覧へ</UiText></strong><small><kbd>M</kbd></small></button>
