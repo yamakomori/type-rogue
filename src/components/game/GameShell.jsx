@@ -39,8 +39,9 @@ const DEPTH_BANDS = {
   bottom: [54, 82],
 };
 
-function aquariumPosition(index, seed = 0) {
-  const slot = AQUARIUM_SLOT_ORDER[index % AQUARIUM_SLOT_ORDER.length];
+function aquariumPosition(index, seed = 0, salt = 0) {
+  // Rotating the slot assignment by the per-open salt reshuffles who sits where each visit.
+  const slot = AQUARIUM_SLOT_ORDER[(index + salt) % AQUARIUM_SLOT_ORDER.length];
   const col = slot % 6;
   const row = Math.floor(slot / 6);
   // Scatter each fish off the grid lines so the tank doesn't look like a spreadsheet.
@@ -287,6 +288,7 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
         speciesId: info.speciesId,
         depth: info.depth,
         scale: info.scale ?? 1,
+        salt: info.salt ?? 0,
         school,
         center: null,
         x, y, tx: x, ty: y,
@@ -352,7 +354,7 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
       if (!fish.school || !fish.node) continue;
       let center = schools.get(fish.speciesId);
       if (!center) {
-        const random = makeFishRandom(stableFishNumber({ speciesId: fish.speciesId }));
+        const random = makeFishRandom((stableFishNumber({ speciesId: fish.speciesId }) ^ Math.imul(fish.salt, 0x9e3779b1)) >>> 0);
         center = {
           random,
           depth: fish.depth,
@@ -453,7 +455,7 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
   }, [signature]);
 }
 
-function AquariumPreview({ fish = [], emptyMessage, compact = false }) {
+function AquariumPreview({ fish = [], emptyMessage, compact = false, seedSalt = 0 }) {
   const limit = compact ? AQUARIUM_COMPACT_VISIBLE_FISH_LIMIT : AQUARIUM_VISIBLE_FISH_LIMIT;
   const visibleFish = selectAquariumFish(fish, limit);
   const ariaLabel = visibleFish.length < fish.length
@@ -464,18 +466,21 @@ function AquariumPreview({ fish = [], emptyMessage, compact = false }) {
   const metaRef = useRef([]);
   metaRef.current = visibleFish.map((caughtFish, index) => {
     const species = getFishSpecies(caughtFish.speciesId);
+    // Mix the per-open salt into each fish's seed so positions and paths vary between visits.
+    const seed = (stableFishNumber(caughtFish) ^ Math.imul(seedSalt, 0x9e3779b1)) >>> 0;
     return {
-      seed: stableFishNumber(caughtFish),
+      seed,
+      salt: seedSalt,
       speciesId: species.id,
       sourceFacing: species.sprite?.sourceFacing ?? "right",
       drift: (species.movement ?? "cruise") === "drift",
       school: species.school === true,
       depth: species.depth ?? "mid",
       scale: species.scale ?? 1,
-      base: aquariumPosition(index, stableFishNumber(caughtFish)),
+      base: aquariumPosition(index, seed, seedSalt),
     };
   });
-  useAquariumRoaming(containerRef, nodesRef, metaRef, visibleFish.map((f) => f.id).join(","));
+  useAquariumRoaming(containerRef, nodesRef, metaRef, `${seedSalt}:${visibleFish.map((f) => f.id).join(",")}`);
   return <div ref={containerRef} className="aquarium-preview" aria-label={ariaLabel}><div className="water-shine" />{visibleFish.length > 0 ? visibleFish.map((caughtFish, index) => <FishVisual key={caughtFish.id} caughtFish={caughtFish} index={index} roaming position={metaRef.current[index].base} nodeRef={(el) => { nodesRef.current[index] = el; }} />) : <p><span><UiText>{emptyMessage}</UiText></span></p>}<span className="aquarium-sand" /></div>;
 }
 
@@ -597,6 +602,11 @@ function AquariumScreen({ state, dispatch }) {
   const species = fishSpeciesForRegion(region.id);
   const discovery = fishDiscovery(state.save.discoveredFishSpeciesIds, region.stageIds);
   const counts = fishCountsBySpecies(tankFish);
+  // Fresh random arrangement each time a tank is opened or switched, but stable while it stays open.
+  const tankSaltRef = useRef({ id: null, salt: 0 });
+  if (tankSaltRef.current.id !== region.id) {
+    tankSaltRef.current = { id: region.id, salt: (Math.random() * 0x7fffffff) | 0 };
+  }
   const selectTank = (regionId) => dispatch({ type: "SELECT_TANK", regionId });
   return <section className={`aquarium-screen region-${region.id}`}>
     <div className="screen-heading aquarium-heading">
@@ -605,7 +615,7 @@ function AquariumScreen({ state, dispatch }) {
     </div>
     {unlockedRegions.length > 1 && <RegionNavigator regions={unlockedRegions} selectedId={region.id} onSelect={selectTank} label="水槽を選ぶ" />}
     <div className="aquarium-main">
-      <AquariumPreview fish={tankFish} emptyMessage="まだ魚はいないよ。最初の海へ出かけよう。" />
+      <AquariumPreview fish={tankFish} emptyMessage="まだ魚はいないよ。最初の海へ出かけよう。" seedSalt={tankSaltRef.current.salt} />
       <button className="aquarium-depart-button primary-button" onClick={() => dispatch({ type: "SHOW_MAP" })}><strong><UiText>海へ出かける</UiText></strong><UiIcon name="play" /></button>
     </div>
     <div className="collection-heading fish-book-heading"><div><p className="eyebrow"><UiText>海のずかん</UiText></p><h2><UiText>出会った魚</UiText> {discovery.discovered} / {discovery.total}</h2></div></div>

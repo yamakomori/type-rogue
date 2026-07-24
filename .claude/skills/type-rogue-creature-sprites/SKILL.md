@@ -36,6 +36,7 @@ node .claude/skills/type-rogue-creature-sprites/scripts/inventory-creatures.mjs
 - 海域と配置理由
 - 既存生き物との重複監査結果
 - 輪郭、主要色、4コマの動き
+- 水槽での泳ぎ（泳ぐ層 上/中/底、群れるか、大きさの強弱）。生態に沿って決める。詳細は手順7を参照
 - 現在と追加後の実在生物比率
 - 新規種、既存種の見た目差し替え、色柄違いのどれか
 
@@ -115,6 +116,16 @@ python3 .claude/skills/type-rogue-creature-sprites/scripts/validate-sprite.py \
 - `public/sprites/<name>-strip.png`
 
 `src/domain/fish.js` の種データへ `rarity` と `sprite` を設定する。スプライトURL、向き、現在フレームを捕獲個体やセーブへ保存しない。新しい実在種を追加するときは安定した種IDを作り、既存IDを別種へ流用しない。
+
+### 水槽での泳ぎ・見え方の属性
+
+水槽内の遊泳挙動は種データの次の属性で決まる（定義とデフォルトは `src/domain/fish.js` 冒頭コメントが正）。生き物の生態に合わせて追加時に設定する。省略時は「群れない・中層・等倍・巡航」になる。
+
+- `school: true` … 同種で群れる。小さくおとなしい魚（スズメダイ、テンジクダイ等）に付ける。大型や単独性（アンコウ、エイ、タコ等）には付けない。群れる魚は共通の中心へ集まって泳ぐ。
+- `depth: "top" | "mid" | "bottom"` … 泳ぐ層。既定は `"mid"`。底生（ハゼ、エイ、ウツボ、チンアナゴ等）は `"bottom"`、浮遊する種（クラゲ、イカ等）は `"top"`。
+- `scale: 数値` … 水槽での大きさ倍率。既定 `1`（＝最小）。大型魚だけ大きくして強弱を出す（例: エイ・ウミガメ `1.5`、アンコウ `2`）。当たり判定にも反映されるので枠外へは出ない。
+- `movement: "drift"` … ふわふわ漂う動き。クラゲ、タツノオトシゴなど遊泳力の弱い種に付ける（既定は巡航）。
+- 見た目の基礎: `shape`（`round`/`long`/`tall`）、`color`、`accent` はスプライト未設定種のCSS描画にも使うので必ず設定する。
 
 未設定種のCSS魚フォールバック、アプリの動き軽減、`prefers-reduced-motion` を維持する。`concept_art/sprites/README.md` の割り当て、仕様、生成概要も更新する。
 
