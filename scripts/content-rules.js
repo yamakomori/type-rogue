@@ -77,6 +77,27 @@ export const REGION_CONTENT_RULES = {
     // 未指定の海域は海域名を使う。洞窟・深海を足すときに、ここも海域名へ寄せたい。
     messageLabel: "Phase 2",
   },
+
+  "sea-cave": {
+    problemRules: {
+      requireLessonRole: true,
+      exerciseKinds: ["sentence"],
+      // 句読点はまだ使わない。深海で読点・句点を導入する。
+      inputPattern: { pattern: /^[ぁ-んー]+$/, message: "入力にはひらがなと長音だけを使用する" },
+    },
+    stageDefaults: {
+      roleMinimums: { intro: 4, practice: 12, mixed: 6, treasure: 4 },
+      uniqueInputAcrossAllStages: true,
+    },
+    stages: {
+      CA01: { problemCount: 30, inputLength: [8, 11], mainTag: "cave-short-sentence" },
+      CA02: { problemCount: 30, inputLength: [9, 13], mainTag: "sentence-modifier" },
+      CA03: { problemCount: 30, inputLength: [10, 14], mainTag: "sentence-place-time" },
+      CA04: { problemCount: 30, inputLength: [11, 16], mainTag: "sentence-connect" },
+      CA05: { problemCount: 30, inputLength: [12, 16], mainTag: "sentence-reason" },
+      CA06: { problemCount: 30, inputLength: [12, 16], mainTag: "cave-challenge" },
+    },
+  },
 };
 
 // 全海域に共通する規約。

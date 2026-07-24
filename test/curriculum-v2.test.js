@@ -8,10 +8,14 @@ import { loadSave } from "../src/domain/save.js";
 import { createGameState, gameReducer } from "../src/game/state/gameReducer.js";
 
 const SHALLOW_STAGE_IDS = Array.from({ length: 11 }, (_, index) => `SH${String(index + 1).padStart(2, "0")}`);
+const CORAL_STAGE_IDS = Array.from({ length: 6 }, (_, index) => `CO${String(index + 1).padStart(2, "0")}`);
+const CAVE_STAGE_IDS = Array.from({ length: 6 }, (_, index) => `CA${String(index + 1).padStart(2, "0")}`);
+// 浅瀬と珊瑚の森は全ステージが6問。海の洞窟は文が長くなるぶん後半で問題数を減らす。
+const SIX_PROBLEM_STAGE_IDS = [...SHALLOW_STAGE_IDS, ...CORAL_STAGE_IDS];
 const ACTIVE_STAGE_IDS = [
   ...Array.from({ length: 9 }, (_, index) => `S${String(index).padStart(2, "0")}`),
-  ...SHALLOW_STAGE_IDS,
-  ...Array.from({ length: 6 }, (_, index) => `CO${String(index + 1).padStart(2, "0")}`),
+  ...SIX_PROBLEM_STAGE_IDS,
+  ...CAVE_STAGE_IDS,
 ];
 const LESSON_PLAN = ["intro", "intro", "practice", "practice", "mixed", "treasure"];
 
@@ -47,25 +51,30 @@ test("curriculum v2 uses explicit order and region-sized sessions", () => {
   for (const stageId of ACTIVE_STAGE_IDS.slice(0, 9)) {
     assert.equal(getStage(stageId).problemCount, 3);
   }
-  for (const stageId of [...SHALLOW_STAGE_IDS, ...Array.from({ length: 6 }, (_, index) => `CO${String(index + 1).padStart(2, "0")}`)]) {
+  for (const stageId of SIX_PROBLEM_STAGE_IDS) {
     assert.equal(getStage(stageId).problemCount, 6);
     assert.deepEqual(getStage(stageId).lessonPlan, LESSON_PLAN);
   }
   assert.equal(getNextStage("S08").id, "SH01");
   assert.equal(getNextStage("SH11").id, "CO01");
+  assert.equal(getNextStage("CO06").id, "CA01");
 });
 
-test("six-problem lessons fill repeated role slots without duplicates", () => {
-  for (const stageId of [...SHALLOW_STAGE_IDS, ...Array.from({ length: 6 }, (_, index) => `CO${String(index + 1).padStart(2, "0")}`)]) {
+// lessonPlan を持つ全ステージが、重複なしで役割の順どおりに1プレイぶんを組めること。
+test("lesson plans fill repeated role slots without duplicates", () => {
+  const planned = STAGES.filter((stage) => stage.lessonPlan);
+  assert.ok(planned.length >= SIX_PROBLEM_STAGE_IDS.length + CAVE_STAGE_IDS.length);
+  for (const stage of planned) {
+    assert.equal(stage.lessonPlan.length, stage.problemCount, stage.id);
     const selected = chooseProblems({
-      stageId,
-      count: 6,
-      lessonPlan: LESSON_PLAN,
+      stageId: stage.id,
+      count: stage.problemCount,
+      lessonPlan: stage.lessonPlan,
       random: () => 0,
     });
-    assert.equal(selected.length, 6, stageId);
-    assert.equal(new Set(selected.map((problem) => problem.id)).size, 6, stageId);
-    assert.deepEqual(selected.map((problem) => problem.lessonRole), LESSON_PLAN, stageId);
+    assert.equal(selected.length, stage.problemCount, stage.id);
+    assert.equal(new Set(selected.map((problem) => problem.id)).size, stage.problemCount, stage.id);
+    assert.deepEqual(selected.map((problem) => problem.lessonRole), stage.lessonPlan, stage.id);
   }
 });
 

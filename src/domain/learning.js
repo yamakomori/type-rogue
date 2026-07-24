@@ -55,6 +55,12 @@ const CONCEPT_LABELS = {
   "mixed-kana-word": "特殊なかなの混合",
   "phrase-particle": "助詞つきフレーズ",
   "coral-challenge": "珊瑚の森チャレンジ",
+  "cave-short-sentence": "みじかい文",
+  "sentence-modifier": "ようすを そえる文",
+  "sentence-place-time": "どこで・いつの文",
+  "sentence-connect": "ふたつの うごきの文",
+  "sentence-reason": "わけを つなぐ文",
+  "cave-challenge": "海の洞窟チャレンジ",
 };
 
 export function learningConceptLabel(tag) {

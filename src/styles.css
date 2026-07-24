@@ -2224,6 +2224,54 @@ body:has(.region-backdrop-shallows) {
   background: linear-gradient(105deg, #1c2438, #173040);
 }
 
+/* 第四海域「海の洞窟」。岩肌の灰緑と、割れ目から差す一条の光で暗さを見せる。 */
+.region-sea-cave .map-hero,
+.region-sea-cave .screen-heading {
+  border-color: #4c6470;
+  background: linear-gradient(135deg, #23323c, #101d2b);
+}
+
+.region-sea-cave .aquarium-preview {
+  border-color: #5d7684;
+  background: linear-gradient(168deg, #22333d 0%, #14252f 46%, #060f18 100%);
+  box-shadow: inset 0 0 60px #01070d, 0 12px 28px #00060c66;
+}
+
+.region-sea-cave .aquarium-preview::before {
+  background: linear-gradient(96deg, transparent 38%, #cfe9ff2e 43%, #cfe9ff12 47%, transparent 52%), radial-gradient(ellipse at 44% 0%, #a8d4f03d, transparent 52%);
+}
+
+.region-sea-cave .aquarium-sand {
+  background: linear-gradient(0deg, #1d2a30, #46545a99);
+}
+
+.region-sea-cave .sea-typing-stage {
+  border-color: #55707e;
+  background: radial-gradient(ellipse at 26% 8%, #9fd0ea38, transparent 40%), #101f2a;
+}
+
+.region-sea-cave .fishing-progress .fishing-line {
+  background: linear-gradient(#dff2ff, #7fb3c9);
+}
+
+.region-sea-cave .stage-card {
+  border-color: #3d5461;
+  background: linear-gradient(105deg, #16222c, #101c26);
+}
+
+.region-sea-cave .stage-card.current {
+  border-color: #8fc4dd;
+  box-shadow: 0 5px 18px #5f93aa35;
+}
+
+.region-sea-cave .stage-number {
+  color: #93cbe4;
+}
+
+.region-sea-cave .stage-card:nth-child(3n + 2) {
+  background: linear-gradient(105deg, #1a2733, #14202b);
+}
+
 @media (max-width: 560px) {
   .input-guide {
     max-width: 100%;

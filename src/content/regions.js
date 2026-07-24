@@ -20,4 +20,11 @@ export const REGION_CONTENT = [
     description: "単語から短いフレーズへ、意味のあることばを集める海。",
     stageIds: ["CO01", "CO02", "CO03", "CO04", "CO05", "CO06"],
   },
+  {
+    id: "sea-cave",
+    name: "海の洞窟",
+    tankName: "海の洞窟の水槽",
+    description: "みじかい文を、ひと息でたどる暗い海。",
+    stageIds: ["CA01", "CA02", "CA03", "CA04", "CA05", "CA06"],
+  },
 ];

@@ -1,3 +1,4 @@
+import { CAVE_PROBLEM_CONTENT } from "./caveProblems.js";
 import { CORAL_PROBLEM_CONTENT } from "./coralProblems.js";
 import { SHALLOW_PROBLEM_CONTENT } from "./shallowProblems.js";
 
@@ -79,4 +80,5 @@ export const PROBLEM_CONTENT = [
     ["treasure", "しおの かおり", "しお", "shio"],
   ]),
   ...CORAL_PROBLEM_CONTENT,
+  ...CAVE_PROBLEM_CONTENT,
 ];

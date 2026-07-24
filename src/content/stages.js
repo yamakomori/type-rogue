@@ -1,6 +1,9 @@
 const LETTER_KEYS = "abcdefghijklmnopqrstuvwxyz".split("");
 const WORD_KEYS = [...LETTER_KEYS, "-"];
 const SIX_PROBLEM_LESSON_PLAN = ["intro", "intro", "practice", "practice", "mixed", "treasure"];
+// 文が長い海域では、1プレイの所要時間を保つために問題数を減らす。役割の順序は変えない。
+const FIVE_PROBLEM_LESSON_PLAN = ["intro", "practice", "practice", "mixed", "treasure"];
+const FOUR_PROBLEM_LESSON_PLAN = ["intro", "practice", "mixed", "treasure"];
 
 const tidepoolStage = (stage, order) => ({
   ...stage,
@@ -38,6 +41,24 @@ const coralStage = (stage, order) => ({
   },
 });
 
+// 海の洞窟は文を読んでから打つため、珊瑚の森より1打あたりの猶予を広げる。
+// 文が長くなる後半ほど problemCount を減らし、1プレイを30〜60秒に収める。
+const CAVE_LESSON_PLANS = { 6: SIX_PROBLEM_LESSON_PLAN, 5: FIVE_PROBLEM_LESSON_PLAN, 4: FOUR_PROBLEM_LESSON_PLAN };
+const caveStage = (stage, order) => ({
+  ...stage,
+  regionId: "sea-cave",
+  order,
+  introducedKeys: [],
+  availableKeys: WORD_KEYS,
+  problemCount: stage.problemCount ?? 6,
+  lessonPlan: CAVE_LESSON_PLANS[stage.problemCount ?? 6],
+  minAccuracy: stage.minAccuracy ?? 0.9,
+  medalCriteria: {
+    carefulMinAccuracy: stage.carefulMinAccuracy ?? 0.97,
+    speedMaxMsPerKey: stage.speedMaxMsPerKey ?? 1650,
+  },
+});
+
 export const STAGE_CONTENT = [
   tidepoolStage({ id: "S00", regionId: "tidepool", name: "潮だまりのぽっち", description: "F と J のぽっちに、指をかえそう。", introducedKeys: ["f", "j"], availableKeys: ["f", "j"], minCompletedPlays: 1, minAccuracy: 0.8, medalCriteria: { carefulMinAccuracy: 0.95, speedMaxMsPerKey: 1300 } }, 0),
   tidepoolStage({ id: "S01", regionId: "tidepool", name: "潮だまりの左手", description: "左手のおうちを、ゆっくりたどろう。", introducedKeys: ["a", "s", "d"], availableKeys: ["a", "s", "d", "f"], minCompletedPlays: 2, minAccuracy: 0.8, medalCriteria: { carefulMinAccuracy: 0.95, speedMaxMsPerKey: 1200 } }, 1),
@@ -67,4 +88,11 @@ export const STAGE_CONTENT = [
   coralStage({ id: "CO04", name: "珊瑚の森のまざる音", description: "「ん・っ・ー・ゃゅょ」が入ることばを復習しよう。", focusTags: ["mixed-kana-word"], minCompletedPlays: 4, minAccuracy: 0.89, carefulMinAccuracy: 0.97, speedMaxMsPerKey: 1500 }, 23),
   coralStage({ id: "CO05", name: "珊瑚の森のつながり", description: "「を・に・で」などで、短いことばをつなごう。", focusTags: ["phrase-particle"], minCompletedPlays: 4, minAccuracy: 0.89, carefulMinAccuracy: 0.97, speedMaxMsPerKey: 1500 }, 24),
   coralStage({ id: "CO06", name: "珊瑚の森チャレンジ", description: "森で集めたことばを、6つ続けてたどろう。", focusTags: ["coral-challenge"], minCompletedPlays: 5, minAccuracy: 0.9, carefulMinAccuracy: 0.97, speedMaxMsPerKey: 1550 }, 25),
+
+  caveStage({ id: "CA01", name: "洞窟のみじかい文", description: "「だれが どうする」だけの文を打とう。", focusTags: ["cave-short-sentence"], minCompletedPlays: 4 }, 26),
+  caveStage({ id: "CA02", name: "洞窟のようす", description: "「赤い さかな」のように、ようすを そえよう。", focusTags: ["sentence-modifier"], minCompletedPlays: 4 }, 27),
+  caveStage({ id: "CA03", problemCount: 5, name: "洞窟のどこで・いつ", description: "どこで、いつのことかを 文に 足そう。", focusTags: ["sentence-place-time"], minCompletedPlays: 4, speedMaxMsPerKey: 1700 }, 28),
+  caveStage({ id: "CA04", problemCount: 5, name: "洞窟のふたつのうごき", description: "「〜て」で、ふたつの うごきを つなごう。", focusTags: ["sentence-connect"], minCompletedPlays: 4, speedMaxMsPerKey: 1700 }, 29),
+  caveStage({ id: "CA05", problemCount: 4, name: "洞窟のわけ", description: "「〜から」で、わけを つたえよう。", focusTags: ["sentence-reason"], minCompletedPlays: 4, minAccuracy: 0.91, speedMaxMsPerKey: 1700 }, 30),
+  caveStage({ id: "CA06", problemCount: 4, name: "海の洞窟チャレンジ", description: "洞窟でおぼえた文を、4つ続けてたどろう。", focusTags: ["cave-challenge"], minCompletedPlays: 5, minAccuracy: 0.91, speedMaxMsPerKey: 1750 }, 31),
 ];

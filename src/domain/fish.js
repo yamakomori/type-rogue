@@ -58,6 +58,22 @@ export const FISH_SPECIES = [
   // ── 珊瑚の森（レア2種）──
   { id: "coral-cleaner-shrimp", name: "エンターエビ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#ef8275", accent: "#fff0db", shape: "long", rarity: "rare", depth: "bottom" },
   { id: "coral-key-slug", name: "タイプウミウシ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#d05aa0", accent: "#ffe27a", shape: "tall", rarity: "rare", movement: "drift", depth: "bottom" },
+
+  // ── 海の洞窟（通常10種）──
+  // 岩陰や海食洞に実際にいる生きものを選んでいる。暗い海なので、色は赤・銀・黄を軸にする。
+  { id: "cave-soldierfish", name: "アカマツカサ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA01", "CA02"], color: "#c8443f", accent: "#ffd9c0", shape: "round", school: true },
+  { id: "cave-sweeper", name: "リュウキュウハタンポ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA01", "CA03"], color: "#b9c4cf", accent: "#f0f5fa", shape: "round", school: true },
+  { id: "cave-pineconefish", name: "マツカサウオ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA02", "CA03"], color: "#e0b34a", accent: "#4a3f2a", shape: "round" },
+  { id: "cave-boxer-shrimp", name: "オトヒメエビ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA02", "CA04"], color: "#d9584f", accent: "#f6efe4", shape: "long", depth: "bottom" },
+  { id: "cave-moray", name: "トラウツボ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA03", "CA04"], color: "#8a4a2c", accent: "#f2d9a0", shape: "long", depth: "bottom", scale: 1.35 },
+  { id: "cave-featherstar", name: "ウミシダ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA03", "CA05"], color: "#6f4f7a", accent: "#e6c8f0", shape: "tall", movement: "anchor", depth: "floor" },
+  { id: "cave-spiny-lobster", name: "イセエビ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA04", "CA05"], color: "#a8402f", accent: "#f0c88a", shape: "long", depth: "bottom", scale: 1.4 },
+  { id: "cave-triton", name: "ホラガイ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA04", "CA06"], color: "#d8c49a", accent: "#7a5f3f", shape: "tall", movement: "anchor", depth: "floor", scale: 1.2 },
+  { id: "cave-flashlight-fish", name: "ヒカリキンメダイ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA05", "CA06"], color: "#2f3f52", accent: "#9ff0c8", shape: "round", school: true },
+  { id: "cave-bullhead-shark", name: "ネコザメ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA06"], color: "#8a7a62", accent: "#e0d4bc", shape: "long", depth: "bottom", scale: 1.8 },
+  // ── 海の洞窟（レア2種）──
+  { id: "cave-escape-eel", name: "エスケープウナギ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA06"], color: "#4f6f8a", accent: "#ffe08a", shape: "long", rarity: "rare", depth: "bottom", scale: 1.4 },
+  { id: "cave-alt-nautilus", name: "オルトオウムガイ", habitat: "海の洞窟", regionId: "sea-cave", stages: ["CA06"], color: "#e8ddc4", accent: "#b0503f", shape: "round", rarity: "rare", movement: "drift", scale: 1.4 },
 ];
 
 export const AQUARIUM_VISIBLE_FISH_LIMIT = 80;
