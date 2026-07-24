@@ -3,15 +3,18 @@ import { getRegion, getRegionForStage } from "./regions.js";
 
 // 水槽での泳ぎ方・見え方の指定:
 //   school: true  … 同種で群れる（小さくおとなしい魚向け）。大型やアンコウなどは指定しない。
-//   depth: "top" | "mid"(既定) | "bottom" … 泳ぐ層。底生の魚は "bottom"、浮遊する魚は "top"。
+//   depth: "top" | "mid"(既定) | "bottom" | "floor" … 泳ぐ層。底生の魚は "bottom"、浮遊する魚は "top"。
+//          "floor" は砂に定位して漂う種（チンアナゴなど）専用で、最下段に貼り付く。
 //   scale: 数値(既定 1) … 水槽での大きさ倍率。1 を最小として、大型の魚だけ大きくする。
+//   movement: "cruise"(既定) | "drift" | "anchor" … 泳ぎ方。"drift" はふわふわ漂う（クラゲ等）。
+//          "anchor" は横に泳がず砂際で定位して揺れる（チンアナゴ等）。通常は指定しない。
 //   rarity: "rare" … レア魚。通常の捕獲サイクルには出ず、その海域の全ステージをクリアした後の
 //                    再プレイでのみ抽選で出現する（出現ロジックは fishForCatch を参照）。
 //                    各海域は「通常10種＋レア2種＝12種」で構成する。通常魚は実在の一般名、
 //                    レア魚だけがタイピング由来の架空名を持つ。
 export const FISH_SPECIES = [
   // ── 潮だまり（通常10種）──
-  { id: "tide-goby", name: "マハゼ", habitat: "潮だまり", regionId: "tidepool", stages: ["S00"], color: "#c79a5a", accent: "#f2e4c2", shape: "round", depth: "bottom" },
+  { id: "tide-goby", name: "マハゼ", habitat: "潮だまり", regionId: "tidepool", stages: ["S00"], color: "#c79a5a", accent: "#f2e4c2", shape: "round", depth: "floor" },
   { id: "tide-shrimp", name: "イソスジエビ", habitat: "潮だまり", regionId: "tidepool", stages: ["S00"], color: "#e0a58f", accent: "#ffe8d6", shape: "long", depth: "bottom" },
   { id: "left-damselfish", name: "ソラスズメダイ", habitat: "潮だまり", regionId: "tidepool", stages: ["S01", "S02", "S03"], color: "#3f7fd6", accent: "#d7e8ff", shape: "round", school: true },
   { id: "shellfish", name: "キュウセン", habitat: "潮だまり", regionId: "tidepool", stages: ["S01", "S02", "S03"], color: "#e8b84d", accent: "#6d8b84", shape: "long", sprite: { src: "/sprites/striped-wrasse-strip.png", frames: 4, frameMs: 270, sourceFacing: "right" } },
@@ -20,7 +23,7 @@ export const FISH_SPECIES = [
   { id: "grass-seahorse", name: "タツノオトシゴ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#91ae70", accent: "#f3e6a1", shape: "tall", movement: "drift", depth: "bottom" },
   { id: "moon-squid", name: "コウイカ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#b6a2ca", accent: "#e9e6f5", shape: "tall", movement: "drift", depth: "top", scale: 1.2 },
   { id: "deep-jelly", name: "ミズクラゲ", habitat: "潮だまり", regionId: "tidepool", stages: ["S08"], color: "#a9c2d6", accent: "#e6f4f3", shape: "tall", movement: "drift", depth: "top" },
-  { id: "tide-hermit", name: "ヤドカリ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#d08a5a", accent: "#ffe6c8", shape: "round", depth: "bottom" },
+  { id: "tide-hermit", name: "ヤドカリ", habitat: "潮だまり", regionId: "tidepool", stages: ["S07", "S08"], color: "#d08a5a", accent: "#ffe6c8", shape: "round", depth: "floor" },
   // ── 潮だまり（レア2種：タイピング由来の架空名）──
   // 旧カリキュラムで捕まえた個体を図鑑と水槽に残すため、魚種IDは維持する。
   { id: "deep-lantern", name: "カーソルアンコウ", habitat: "潮だまり", regionId: "tidepool", stages: ["S08"], color: "#7187a9", accent: "#f5cb6d", shape: "round", rarity: "rare", depth: "bottom", scale: 2, sprite: { src: "/sprites/key-angler-strip.png", frames: 4, frameMs: 350, sourceFacing: "right" } },
@@ -29,14 +32,14 @@ export const FISH_SPECIES = [
   // ── 浅瀬（通常10種）──
   { id: "shallow-puffer", name: "ミナミハコフグ", habitat: "浅瀬", regionId: "shallows", stages: ["SH01", "SH02"], color: "#e7b955", accent: "#fff0ac", shape: "round", scale: 1.15, sprite: { src: "/sprites/minami-hakofugu-strip.png", frames: 4, frameMs: 250, sourceFacing: "right" } },
   { id: "clownfish", name: "カクレクマノミ", habitat: "浅瀬", regionId: "shallows", stages: ["SH01", "SH02"], color: "#ee7f36", accent: "#f7efe0", shape: "round", school: true, sprite: { src: "/sprites/clownfish-strip.png", frames: 4, frameMs: 280, sourceFacing: "right" } },
-  { id: "sand-ray", name: "アカエイ", habitat: "浅瀬", regionId: "shallows", stages: ["SH03", "SH04"], color: "#b98a6a", accent: "#ecdcc4", shape: "long", depth: "bottom", scale: 1.5, sprite: { src: "/sprites/sand-ray-strip.png", frames: 4, frameMs: 300, sourceFacing: "right" } },
+  { id: "sand-ray", name: "アカエイ", habitat: "浅瀬", regionId: "shallows", stages: ["SH03", "SH04"], color: "#b98a6a", accent: "#ecdcc4", shape: "long", depth: "floor", scale: 1.5, sprite: { src: "/sprites/sand-ray-strip.png", frames: 4, frameMs: 300, sourceFacing: "right" } },
   { id: "ribbon-eel", name: "ハナヒゲウツボ", habitat: "浅瀬", regionId: "shallows", stages: ["SH05", "SH06"], color: "#4f7fd6", accent: "#ffd24a", shape: "long", depth: "bottom", scale: 1.35 },
   { id: "bubble-jelly", name: "タコクラゲ", habitat: "浅瀬", regionId: "shallows", stages: ["SH07"], color: "#ef8fa5", accent: "#ffe4eb", shape: "tall", movement: "drift", depth: "top" },
   { id: "shell-octopus", name: "マダコ", habitat: "浅瀬", regionId: "shallows", stages: ["SH08", "SH09"], color: "#d67b68", accent: "#ffe0c7", shape: "round", depth: "bottom", scale: 1.3 },
   { id: "sun-threadfish", name: "イトヒキアジ", habitat: "浅瀬", regionId: "shallows", stages: ["SH10", "SH11"], color: "#cdd8e2", accent: "#f4f9fd", shape: "long", school: true },
-  { id: "shallow-garden-eel", name: "チンアナゴ", habitat: "浅瀬", regionId: "shallows", stages: ["SH03", "SH04", "SH05"], color: "#e6dcc4", accent: "#8a7a5a", shape: "tall", movement: "drift", depth: "bottom", school: true },
-  { id: "shallow-flounder", name: "ヒラメ", habitat: "浅瀬", regionId: "shallows", stages: ["SH06", "SH07"], color: "#8a836e", accent: "#d8cfb8", shape: "long", depth: "bottom", scale: 1.3 },
-  { id: "shallow-sardine", name: "マイワシ", habitat: "浅瀬", regionId: "shallows", stages: ["SH08", "SH09", "SH10", "SH11"], color: "#8fb8cf", accent: "#eef6fb", shape: "long", school: true },
+  { id: "shallow-garden-eel", name: "チンアナゴ", habitat: "浅瀬", regionId: "shallows", stages: ["SH03", "SH04", "SH05"], color: "#e6dcc4", accent: "#8a7a5a", shape: "tall", movement: "anchor", depth: "floor" },
+  { id: "shallow-flounder", name: "ヒラメ", habitat: "浅瀬", regionId: "shallows", stages: ["SH06", "SH07"], color: "#8a836e", accent: "#d8cfb8", shape: "long", depth: "floor", scale: 1.3 },
+  { id: "shallow-sardine", name: "マイワシ", habitat: "浅瀬", regionId: "shallows", stages: ["SH08", "SH09", "SH10", "SH11"], color: "#8fb8cf", accent: "#eef6fb", shape: "long", school: true, depth: "top" },
   // ── 浅瀬（レア2種）──
   { id: "shallow-tenkey-crab", name: "テンキーガニ", habitat: "浅瀬", regionId: "shallows", stages: ["SH11"], color: "#d0655a", accent: "#ffe0c0", shape: "round", rarity: "rare", depth: "bottom" },
   { id: "shallow-space-puffer", name: "スペースフグ", habitat: "浅瀬", regionId: "shallows", stages: ["SH11"], color: "#7ea6c2", accent: "#eef6fb", shape: "round", rarity: "rare", scale: 1.2 },
@@ -49,9 +52,9 @@ export const FISH_SPECIES = [
   { id: "coral-tang", name: "ナンヨウハギ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO02", "CO03"], color: "#2f6fd0", accent: "#ffd23a", shape: "round" },
   { id: "coral-bannerfish", name: "ハタタテダイ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO03", "CO04"], color: "#f0ead2", accent: "#f2c14a", shape: "tall" },
   { id: "coral-trigger", name: "モンガラカワハギ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO04", "CO05"], color: "#464b57", accent: "#f0e6c0", shape: "round", scale: 1.15 },
-  { id: "coral-starfish", name: "アオヒトデ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO05"], color: "#3f7fd0", accent: "#7fb0e6", shape: "round", movement: "drift", depth: "bottom" },
-  { id: "coral-lionfish", name: "ハナミノカサゴ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO05", "CO06"], color: "#c0524a", accent: "#f6e2c0", shape: "tall" },
-  { id: "coral-turtle", name: "アオウミガメ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#6caf83", accent: "#dff2a7", shape: "round", scale: 1.5 },
+  { id: "coral-starfish", name: "アオヒトデ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO05"], color: "#3f7fd0", accent: "#7fb0e6", shape: "round", movement: "drift", depth: "floor" },
+  { id: "coral-lionfish", name: "ハナミノカサゴ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO05", "CO06"], color: "#c0524a", accent: "#f6e2c0", shape: "tall", depth: "bottom" },
+  { id: "coral-turtle", name: "アオウミガメ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#6caf83", accent: "#dff2a7", shape: "round", scale: 1.5, depth: "top" },
   // ── 珊瑚の森（レア2種）──
   { id: "coral-cleaner-shrimp", name: "エンターエビ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#ef8275", accent: "#fff0db", shape: "long", rarity: "rare", depth: "bottom" },
   { id: "coral-key-slug", name: "タイプウミウシ", habitat: "珊瑚の森", regionId: "coral-forest", stages: ["CO06"], color: "#d05aa0", accent: "#ffe27a", shape: "tall", rarity: "rare", movement: "drift", depth: "bottom" },
@@ -77,7 +80,7 @@ export function fishSpeciesForRegion(regionId) {
 export const RARE_MIN_CHANCE = 0.08;
 export const RARE_MAX_CHANCE = 0.22;
 export const RARE_MEDAL_MULTIPLIER = 1.5;
-export const RARE_PITY_THRESHOLD = 8;
+export const RARE_PITY_THRESHOLD = 12;
 
 export function rareFishForRegion(regionId) {
   return FISH_SPECIES.filter((fish) => fish.regionId === regionId && fish.rarity === "rare");

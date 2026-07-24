@@ -33,10 +33,13 @@ const AQUARIUM_SLOT_ORDER = [
 ];
 
 // Vertical swimming bands as % of tank height (slightly overlapping for a natural blend).
+// 4層がはっきり分かれるよう、水槽の高さをおおむね四分割して割り当てる。
 const DEPTH_BANDS = {
-  top: [6, 34],
-  mid: [26, 60],
-  bottom: [54, 82],
+  top: [6, 30],
+  mid: [34, 58],
+  bottom: [62, 78],
+  // 砂に定位する種（チンアナゴなど）は最下段に貼り付け、中層に見えないようにする。
+  floor: [80, 90],
 };
 
 function aquariumPosition(index, seed = 0, salt = 0) {
@@ -280,7 +283,8 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
       const x = parseFloat(info.base.left) || 10;
       const y = parseFloat(info.base.top) || 20;
       const slow = info.drift ? 0.55 : 1;
-      const school = info.school === true;
+      const anchored = info.anchored === true;      // burrow-dwellers (garden eels) hold their spot in the sand
+      const school = info.school === true && !anchored;
       return {
         node,
         random,
@@ -289,6 +293,7 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
         depth: info.depth,
         scale: info.scale ?? 1,
         salt: info.salt ?? 0,
+        anchored,
         school,
         center: null,
         x, y, tx: x, ty: y,
@@ -298,8 +303,10 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
         offsetX: school ? (random() * 2 - 1) * 15 : 0,
         offsetY: school ? (random() * 2 - 1) * 9 : 0,
         flipDelay: 120 + random() * 520,          // each member turns a beat after the shoal
-        bobAmp: (info.drift ? 1.1 : 0.5) + random() * 0.6,
-        bobFreq: 0.4 + random() * 0.5,
+        // Anchored dwellers sway a little more so they read as "swaying in place".
+        bobAmp: anchored ? 1.2 + random() * 0.5 : (info.drift ? 1.1 : 0.5) + random() * 0.6,
+        swayAmp: anchored ? 0.5 + random() * 0.4 : 0,
+        bobFreq: (anchored ? 0.5 : 0.4) + random() * 0.5,
         phase: random() * Math.PI * 2,
         nextRetargetAt: 0,
         lastFlipAt: -1e4,
@@ -314,7 +321,8 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
       const hPct = (((entity.node?.offsetHeight ?? 34) * scale) / height) * 100;
       const xMin = 1.5;
       const xMax = Math.max(xMin, 98.5 - wPct);
-      const frameYMax = Math.max(4, 84 - hPct);
+      // Anchored burrow-dwellers may sink their tail into the sand, so they can sit lower than swimmers.
+      const frameYMax = entity.anchored ? Math.max(4, 90 - hPct * 0.4) : Math.max(4, 84 - hPct);
       const band = DEPTH_BANDS[entity.depth] ?? DEPTH_BANDS.mid;
       const yMin = Math.min(band[0], frameYMax);
       const yMax = Math.min(Math.max(band[1], yMin + 1), frameYMax);
@@ -428,6 +436,16 @@ function useAquariumRoaming(containerRef, nodesRef, metaRef, signature) {
 
       for (const fish of fishes) {
         if (!fish.node) continue;
+        if (fish.anchored) {
+          // Hold the spot in the sand and only sway gently, like a garden eel.
+          const t = now / 1000;
+          const swayY = Math.sin(t * fish.bobFreq + fish.phase) * fish.bobAmp;
+          const swayX = Math.sin(t * fish.bobFreq * 0.7 + fish.phase) * fish.swayAmp;
+          fish.node.style.left = `${fish.x + swayX}%`;
+          fish.node.style.top = `${fish.y + swayY}%`;
+          fish.node.classList.toggle("is-flipped", (fish.facing === -1 ? "left" : "right") !== fish.sourceFacing);
+          continue;
+        }
         if (fish.center) {
           const { xMin, xMax, yMin, yMax } = boundsFor(fish);
           fish.tx = clamp(fish.center.x + fish.offsetX, xMin, xMax);
@@ -474,6 +492,7 @@ function AquariumPreview({ fish = [], emptyMessage, compact = false, seedSalt = 
       speciesId: species.id,
       sourceFacing: species.sprite?.sourceFacing ?? "right",
       drift: (species.movement ?? "cruise") === "drift",
+      anchored: species.movement === "anchor",
       school: species.school === true,
       depth: species.depth ?? "mid",
       scale: species.scale ?? 1,
